@@ -1,0 +1,1624 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Safety Snapshot</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f7f8;
+      --panel: #ffffff;
+      --panel-soft: #f9fafb;
+      --ink: #172026;
+      --muted: #66717a;
+      --line: #dfe4e8;
+      --strong-line: #c9d1d8;
+      --accent: #26384a;
+      --accent-2: #4d6378;
+      --button: #172026;
+      --button-ink: #ffffff;
+      --button-soft: #eef2f5;
+      --green: #3f7b61;
+      --green-soft: #e9f4ef;
+      --amber: #9a6b22;
+      --amber-soft: #fff3dc;
+      --red: #a84a4a;
+      --red-soft: #faeaea;
+      --blue: #486f9c;
+      --blue-soft: #e9f1fb;
+      --shadow: 0 16px 40px rgba(23, 32, 38, .07);
+      --radius: 14px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #11161a;
+        --panel: #1a2026;
+        --panel-soft: #151b20;
+        --ink: #edf1f4;
+        --muted: #a4b0ba;
+        --line: #313b45;
+        --strong-line: #45515d;
+        --accent: #dfe7ef;
+        --accent-2: #a9b7c4;
+        --button: #e6edf3;
+        --button-ink: #11161a;
+        --button-soft: #26313a;
+        --green: #8ec7ae;
+        --green-soft: #173126;
+        --amber: #d9b26c;
+        --amber-soft: #3b2b14;
+        --red: #db8d8d;
+        --red-soft: #3a1f1f;
+        --blue: #9dbce0;
+        --blue-soft: #17273a;
+        --shadow: none;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    button, input, select, textarea { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    h1, h2, h3, p { margin: 0; }
+    a { color: inherit; }
+
+    .app { min-height: 100vh; }
+    .mobile-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(246, 247, 248, .92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    @media (prefers-color-scheme: dark) {
+      .mobile-header { background: rgba(17, 22, 26, .92); }
+    }
+    .mobile-title { min-width: 0; }
+    .mobile-title strong { display: block; font-size: 15px; letter-spacing: -.01em; }
+    .mobile-title span { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mobile-score { font-weight: 800; font-size: 18px; }
+    .mobile-score.compliance-urgent, .compliance-urgent strong, .compliance-urgent .compliance-value { color: var(--red); }
+    .mobile-score.compliance-needs, .compliance-needs strong, .compliance-needs .compliance-value { color: var(--amber); }
+    .mobile-score.compliance-mostly, .compliance-mostly strong, .compliance-mostly .compliance-value { color: var(--blue); }
+    .mobile-score.compliance-strong, .compliance-strong strong, .compliance-strong .compliance-value { color: var(--green); }
+
+    aside {
+      display: none;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      padding: 22px;
+      gap: 18px;
+      align-content: start;
+    }
+    .brand { display: grid; gap: 6px; }
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      background: var(--button-soft);
+      color: var(--accent);
+      font-weight: 900;
+      letter-spacing: -.04em;
+    }
+    .brand h1 { font-size: 23px; letter-spacing: -.03em; }
+    .brand p { color: var(--muted); font-size: 13px; line-height: 1.35; }
+    .sidebar-score {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: var(--panel-soft);
+      display: grid;
+      gap: 5px;
+    }
+    .sidebar-score strong { font-size: 34px; letter-spacing: -.04em; }
+    .sidebar-score span { color: var(--muted); font-size: 13px; }
+    .sidebar-score.compliance-urgent { border-color: var(--red); background: var(--red-soft); }
+    .sidebar-score.compliance-needs { border-color: var(--amber); background: var(--amber-soft); }
+    .sidebar-score.compliance-mostly { border-color: var(--blue); background: var(--blue-soft); }
+    .sidebar-score.compliance-strong { border-color: var(--green); background: var(--green-soft); }
+    .sidebar-actions { display: grid; gap: 10px; }
+    .credit { margin-top: auto; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+    main { padding: 14px; display: grid; gap: 14px; max-width: 1180px; margin: 0 auto; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .panel-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 6px;
+    }
+    .panel-head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .panel h2 { font-size: 21px; letter-spacing: -.025em; }
+    .muted { color: var(--muted); line-height: 1.45; }
+    .small { font-size: 13px; }
+    .panel-body { padding: 16px; display: grid; gap: 14px; }
+    .form-grid { display: grid; gap: 12px; }
+    label { display: grid; gap: 7px; font-size: 13px; font-weight: 800; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 12px;
+      color: var(--ink);
+      background: var(--panel);
+      outline: none;
+      min-height: 44px;
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(77, 99, 120, .18);
+    }
+
+    .btn {
+      min-height: 44px;
+      border-radius: 11px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 800;
+      color: var(--button-ink);
+      background: var(--button);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .btn.secondary { background: var(--button-soft); color: var(--ink); border: 1px solid var(--line); }
+    .btn.subtle { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .btn.danger { color: var(--red); background: var(--red-soft); border: 1px solid transparent; }
+    .btn.small-btn { min-height: 34px; padding: 0 10px; font-size: 12px; border-radius: 9px; }
+    .btn.linkish { background: transparent; color: var(--accent); padding: 0; min-height: auto; border-radius: 0; }
+
+    .warning {
+      display: none;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--amber);
+      background: var(--amber-soft);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+    .warning.show { display: block; }
+
+    details.native-details {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      overflow: hidden;
+    }
+    details.native-details > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      font-weight: 800;
+    }
+    details.native-details > summary::-webkit-details-marker { display: none; }
+    .summary-body { border-top: 1px solid var(--line); padding: 14px 16px; display: grid; gap: 12px; }
+    .summary-meta { color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+    .cards { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--panel-soft);
+      min-width: 0;
+    }
+    .card strong { display: block; font-size: 23px; letter-spacing: -.03em; }
+    .card span { color: var(--muted); font-size: 12px; }
+    .card.compliance-urgent { border-color: var(--red); background: var(--red-soft); }
+    .card.compliance-needs { border-color: var(--amber); background: var(--amber-soft); }
+    .card.compliance-mostly { border-color: var(--blue); background: var(--blue-soft); }
+    .card.compliance-strong { border-color: var(--green); background: var(--green-soft); }
+    .risk-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+    .progress-wrap { display: grid; gap: 8px; }
+    .progress-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .progress-track { height: 10px; border-radius: 999px; background: var(--button-soft); overflow: hidden; border: 1px solid var(--line); }
+    .progress-fill { height: 100%; width: 0%; background: var(--accent-2); transition: width 160ms ease; }
+    .progress-fill.compliance-urgent { background: var(--red); }
+    .progress-fill.compliance-needs { background: var(--amber); }
+    .progress-fill.compliance-mostly { background: var(--blue); }
+    .progress-fill.compliance-strong { background: var(--green); }
+
+    .saved-list { display: grid; gap: 8px; }
+    .saved-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      background: var(--panel-soft);
+    }
+    .saved-main { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .saved-main strong { line-height: 1.3; }
+    .saved-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .badge.low { color: var(--green); background: var(--green-soft); }
+    .badge.medium { color: var(--amber); background: var(--amber-soft); }
+    .badge.high { color: var(--red); background: var(--red-soft); }
+    .badge.info { color: var(--blue); background: var(--blue-soft); }
+    .badge.neutral { color: var(--muted); background: var(--button-soft); }
+
+    .module-list { display: grid; gap: 12px; }
+    .module {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--panel);
+    }
+    .module.skipped { opacity: .72; background: var(--panel-soft); }
+    .module-head {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      border-bottom: 1px solid transparent;
+      background: transparent;
+      color: var(--ink);
+    }
+    .module-head-main {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      color: var(--ink);
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+    .module-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .module.open .module-head { border-bottom-color: var(--line); }
+    .module-title-row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .module-title { display: grid; gap: 4px; min-width: 0; }
+    .module-title strong { font-size: 16px; line-height: 1.3; }
+    .module-title span { color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .module-summary { color: var(--muted); font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .module-body { display: none; padding: 14px; gap: 12px; }
+    .module.open .module-body { display: grid; }
+    .module-top-actions { display: flex; justify-content: flex-start; gap: 8px; flex-wrap: wrap; }
+    .preview-question {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .question {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-soft);
+    }
+    .question-title { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .question-title strong { line-height: 1.35; font-size: 14px; }
+    .answers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      overflow: hidden;
+      min-height: 42px;
+      background: var(--panel);
+    }
+    .answers button {
+      background: transparent;
+      color: var(--muted);
+      border-left: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .answers button:first-child { border-left: 0; }
+    .answers .active-yes { background: var(--green-soft); color: var(--green); }
+    .answers .active-no { background: var(--red-soft); color: var(--red); }
+    .answers .active-na { background: var(--blue-soft); color: var(--blue); }
+
+    .suggestion {
+      border: 1px dashed var(--strong-line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .suggestion-main { display: grid; gap: 6px; }
+    .suggestion-main span { color: var(--muted); font-size: 12px; font-weight: 800; }
+    .suggestion-main strong { line-height: 1.35; }
+    .suggestion-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .suggestion-details { display: none; gap: 10px; }
+    .suggestion.expanded .suggestion-details { display: grid; }
+    .desktop-inline { display: none; }
+    .mobile-inline { display: inline-flex; }
+    .suggestion:not(.expanded) .confirm-mobile { display: none; }
+    .suggestion.expanded .start-mobile { display: none; }
+    .action-added { color: var(--green); font-size: 13px; font-weight: 800; }
+
+    .manual-entry { display: grid; gap: 12px; }
+    .actions-toolbar { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 13px; font-weight: 800; }
+    .actions-list { display: grid; gap: 12px; }
+    .action-group { display: grid; gap: 8px; }
+    .action-group h3 { font-size: 14px; color: var(--muted); }
+    .action {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--panel-soft);
+      display: grid;
+      gap: 10px;
+    }
+    .action.closed { opacity: .62; }
+    .action header { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .action header strong { line-height: 1.35; }
+    .action-meta { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+    .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .empty {
+      padding: 16px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      text-align: center;
+      color: var(--muted);
+      background: var(--panel-soft);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.48);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 80;
+      padding: 16px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      width: min(560px, 100%);
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.25);
+      overflow: hidden;
+    }
+    .modal-head { padding: 16px; border-bottom: 1px solid var(--line); }
+    .modal-body { padding: 16px; display: grid; gap: 12px; }
+    .modal-actions { padding: 0 16px 16px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+    .toast {
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      padding: 12px 14px;
+      border-radius: 13px;
+      color: var(--button-ink);
+      background: var(--button);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: 180ms ease;
+      pointer-events: none;
+      text-align: center;
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .toast button { color: var(--button-ink); background: transparent; text-decoration: underline; font-weight: 900; }
+
+    .footer-actions { display: grid; gap: 10px; }
+    .footer-credit { color: var(--muted); font-size: 12px; text-align: center; padding: 8px 0 18px; }
+
+    @media (min-width: 760px) {
+      main { padding: 22px; }
+      .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .question { grid-template-columns: minmax(0, 1fr) 170px; align-items: start; }
+      .question-title { grid-column: 1 / 2; }
+      .answers { grid-column: 2 / 3; grid-row: 1 / 2; }
+      .suggestion { grid-column: 1 / -1; }
+      .suggestion-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+      .desktop-inline { display: inline-flex; }
+      .mobile-inline { display: none; }
+      .action-meta { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .footer-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (min-width: 980px) {
+      .app { display: grid; grid-template-columns: 280px minmax(0, 1fr); }
+      aside { display: grid; position: sticky; top: 0; min-height: 100vh; height: 100vh; overflow: auto; }
+      .mobile-header { display: none; }
+      main { margin: 0; max-width: none; padding: 28px; }
+    }
+
+    @media print {
+      aside, .mobile-header, .btn, .toast, .modal-backdrop, .saved-panel, .footer-actions { display: none !important; }
+      body { background: #fff; color: #000; }
+      main { padding: 0; }
+      .panel { box-shadow: none; break-inside: avoid; border-color: #bbb; }
+      .module, .question, .action { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="mobile-header">
+      <div class="mobile-title">
+        <strong>Safety Snapshot</strong>
+        <span>Quick safety checks for everyday workplaces</span>
+      </div>
+      <div class="mobile-score" id="mobileScore">0%</div>
+      <button class="btn small-btn" type="button" onclick="newInspection()">&#43; New</button>
+    </header>
+
+    <aside>
+      <div class="brand">
+        <div class="brand-mark">SS</div>
+        <h1>Safety Snapshot</h1>
+        <p>Quick safety checks for everyday workplaces</p>
+      </div>
+      <div class="sidebar-score">
+        <strong id="sideScore">0%</strong>
+        <span id="sideScoreBracket">Compliance score</span>
+      </div>
+      <button class="btn" type="button" onclick="newInspection()">&#43; New Inspection</button>
+      <div class="sidebar-actions">
+        <button class="btn secondary" type="button" onclick="exportDocxReport()">&#9635; Export DOCX</button>
+        <button class="btn secondary" type="button" onclick="emailReport()">&#9993; Email Summary</button>
+        <button class="btn secondary" type="button" onclick="printReport()">&#9113; Print / PDF</button>
+      </div>
+      <p class="credit">Designed by Taner Cetinkaya.</p>
+    </aside>
+
+    <main>
+      <div class="warning" id="storageWarning">Browser storage is blocked or unavailable. The app will work, but inspections may not be saved on this device.</div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-row">
+            <div>
+              <h2>Workplace Safety Check</h2>
+              <p class="muted small">Designed for quick, practical workplace safety reviews.</p>
+            </div>
+            <span class="badge neutral" id="lastSaved">Last saved: not yet</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <label>Business Unit / Company<input id="business" type="text" placeholder="Company or business unit"></label>
+            <label>Site / Area<input id="site" type="text" placeholder="Workshop, warehouse, office, project area"></label>
+            <label>Location Type<select id="locationType">
+              <option value="">Select location type</option>
+              <option>Office</option>
+              <option>Warehouse</option>
+              <option>Workshop</option>
+              <option>Showroom</option>
+              <option>Accommodation</option>
+              <option>Project site</option>
+              <option>Contractor work area</option>
+              <option>Other</option>
+            </select></label>
+            <label>Inspection date<input id="date" type="date"></label>
+            <label>Inspector<input id="inspector" type="text" placeholder="Inspector name"></label>
+            <label>Department<input id="department" type="text" placeholder="Department or team"></label>
+          </div>
+          <p class="muted small" id="locationNote" style="display:none"></p>
+          <label>Positive observations<textarea id="positive" placeholder="Record good practices, visible improvements, or safe behaviours observed."></textarea></label>
+          <label>Inspection notes<textarea id="notes" placeholder="Optional notes, context, access limitations, or follow-up comments."></textarea></label>
+        </div>
+      </section>
+
+      <details class="native-details saved-panel" id="savedPanel">
+        <summary><span>Saved inspections</span><span class="summary-meta" id="savedCount">0 saved</span></summary>
+        <div class="summary-body">
+          <div class="saved-list" id="savedList"></div>
+        </div>
+      </details>
+
+      <details class="native-details" id="inspectionSummary">
+        <summary><span>Inspection summary</span><span class="summary-meta" id="summaryHeader">0% - 0 open actions</span></summary>
+        <div class="summary-body">
+          <div class="cards">
+            <div class="card" id="summaryScoreCard"><strong id="summaryScore">0%</strong><span id="summaryScoreBracket">Compliance score</span></div>
+            <div class="card"><strong id="summaryProgress">0%</strong><span>Progress</span></div>
+            <div class="card"><strong id="summaryFindings">0</strong><span>Total findings</span></div>
+            <div class="card"><strong id="summaryOpenActions">0</strong><span>Open actions</span></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label"><span>Answered progress</span><span id="progressText">0%</span></div>
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label"><span>Compliance score</span><span id="scoreText">0%</span></div>
+            <div class="progress-track"><div class="progress-fill" id="scoreFill"></div></div>
+          </div>
+          <div class="risk-row">
+            <div class="card"><strong id="riskHigh">0</strong><span>High findings</span></div>
+            <div class="card"><strong id="riskMedium">0</strong><span>Medium findings</span></div>
+            <div class="card"><strong id="riskLow">0</strong><span>Low findings</span></div>
+          </div>
+        </div>
+      </details>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Inspection Checklist</h2>
+          <p class="muted small">Select only the checklists relevant to the workplace. Skipped checklists are excluded from scoring and reporting.</p>
+        </div>
+        <div class="panel-body">
+          <div class="module-list" id="moduleList"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-row">
+            <div>
+              <h2>Corrective Actions</h2>
+              <p class="muted small">Track findings that need follow-up.</p>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="actions-toolbar" id="actionStatusCounts">Open: 0 - In Progress: 0 - Closed: 0</div>
+          <details class="native-details" id="manualActionDetails">
+            <summary><span>Add manual action</span><span class="summary-meta">Optional</span></summary>
+            <div class="summary-body manual-entry">
+              <div class="form-grid">
+                <label>Finding<input id="manualFinding" type="text" placeholder="e.g. Fire exit partially blocked"></label>
+                <label>Risk<select id="manualRisk"><option>Low</option><option selected>Medium</option><option>High</option></select></label>
+                <label>Owner<input id="manualOwner" type="text" placeholder="Responsible person"></label>
+                <label>Due date<input id="manualDue" type="date"></label>
+              </div>
+              <button class="btn" type="button" onclick="addManualAction()">Add manual action</button>
+            </div>
+          </details>
+          <div class="actions-list" id="actionsList"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Report actions</h2>
+          <p class="muted small">Export a short report focused on summary, findings, N/A items, and corrective actions.</p>
+        </div>
+        <div class="panel-body footer-actions">
+          <button class="btn secondary" type="button" onclick="exportDocxReport()">&#9635; Export DOCX</button>
+          <button class="btn secondary" type="button" onclick="emailReport()">&#9993; Email Summary</button>
+          <button class="btn secondary" type="button" onclick="printReport()">&#9113; Print / PDF</button>
+        </div>
+      </section>
+
+      <p class="footer-credit">Designed by Taner Cetinkaya.</p>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="editModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-head"><h2 id="editTitle">Edit corrective action</h2></div>
+      <div class="modal-body">
+        <input id="editActionId" type="hidden">
+        <label>Finding<textarea id="editFinding"></textarea></label>
+        <div class="form-grid">
+          <label>Risk<select id="editRisk"><option>Low</option><option>Medium</option><option>High</option></select></label>
+          <label>Status<select id="editStatus"><option>Open</option><option>In Progress</option><option>Closed</option></select></label>
+          <label>Owner<input id="editOwner" type="text"></label>
+          <label>Due date<input id="editDue" type="date"></label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" type="button" onclick="closeEditModal()">Cancel</button>
+        <button class="btn" type="button" onclick="saveEditedAction()">Save changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    var STORAGE_KEY = "safety-snapshot-v1";
+    var CHECKLISTS = [
+      { id: "housekeeping", title: "Housekeeping", description: "Checks cleanliness, storage, waste control, and general order.", questions: [
+        { id: "housekeeping_1", text: "Are work areas clean and free from loose waste?", risk: "Medium", action: "Clean the affected work area and remove loose waste." },
+        { id: "housekeeping_2", text: "Are materials stored safely without blocking access or creating falling hazards?", risk: "Medium", action: "Rearrange stored materials so access is clear and items cannot fall." },
+        { id: "housekeeping_3", text: "Are spills cleaned or controlled promptly?", risk: "High", action: "Clean or contain the spill and verify the area is safe to use." },
+        { id: "housekeeping_4", text: "Are tools and equipment returned to suitable storage after use?", risk: "Low", action: "Return tools and equipment to suitable storage and brief users on storage expectations." },
+        { id: "housekeeping_5", text: "Are waste bins available, suitable, and not overflowing?", risk: "Low", action: "Provide suitable waste bins and arrange waste removal." }
+      ]},
+      { id: "access", title: "Walking Surfaces & Access", description: "Checks safe movement, walkways, doors, steps, and access routes.", questions: [
+        { id: "access_1", text: "Are walkways clear of trip hazards and obstructions?", risk: "Medium", action: "Clear walkway obstructions and remove or control trip hazards." },
+        { id: "access_2", text: "Are floors dry, even, and suitable for safe movement?", risk: "Medium", action: "Make the floor safe by cleaning, repairing, or marking the affected area." },
+        { id: "access_3", text: "Are doors, exits, panels, and essential equipment easy to access?", risk: "High", action: "Restore clear access to doors, exits, panels, and essential equipment." },
+        { id: "access_4", text: "Are stairs, ramps, and handrails in safe condition?", risk: "Medium", action: "Repair or restrict access to unsafe stairs, ramps, or handrails." },
+        { id: "access_5", text: "Is lighting adequate for safe movement and work?", risk: "Medium", action: "Improve lighting or restrict work until visibility is adequate." }
+      ]},
+      { id: "fire", title: "Fire Safety", description: "Checks escape routes, extinguishers, fire doors, and ignition controls.", questions: [
+        { id: "fire_1", text: "Are fire exits clear, unlocked, and usable?", risk: "High", action: "Clear and verify all fire exits are unlocked and usable." },
+        { id: "fire_2", text: "Are fire extinguishers visible, accessible, and in date?", risk: "High", action: "Restore access to extinguishers and arrange inspection or replacement if required." },
+        { id: "fire_3", text: "Are fire doors kept closed and not wedged open?", risk: "High", action: "Remove wedges and restore fire doors to proper operating condition." },
+        { id: "fire_4", text: "Are flammable materials controlled and kept away from ignition sources?", risk: "High", action: "Separate flammable materials from ignition sources and improve storage controls." },
+        { id: "fire_5", text: "Are no-smoking and hot-work controls being followed where relevant?", risk: "High", action: "Stop unsafe smoking or hot-work practices and apply the required controls." }
+      ]},
+      { id: "emergency", title: "Emergency Readiness", description: "Checks emergency information, routes, communication, and response arrangements.", questions: [
+        { id: "emergency_1", text: "Are emergency contact numbers clearly available?", risk: "Medium", action: "Display current emergency contact numbers in the work area." },
+        { id: "emergency_2", text: "Are evacuation routes and assembly points clearly marked?", risk: "High", action: "Mark evacuation routes and assembly points clearly." },
+        { id: "emergency_3", text: "Do workers know how to raise an alarm or report an emergency?", risk: "High", action: "Brief workers on how to raise an alarm and report emergencies." },
+        { id: "emergency_4", text: "Is emergency equipment accessible and not blocked?", risk: "High", action: "Clear access to emergency equipment and verify readiness." },
+        { id: "emergency_5", text: "Have emergency drills or briefings been completed where required?", risk: "Medium", action: "Schedule and record the required emergency drill or briefing." }
+      ]},
+      { id: "firstaid", title: "First Aid & Welfare", description: "Checks first aid, drinking water, welfare facilities, and basic health support.", questions: [
+        { id: "firstaid_1", text: "Is a stocked first aid kit available and accessible?", risk: "Medium", action: "Provide or restock an accessible first aid kit." },
+        { id: "firstaid_2", text: "Is first aider information visible or known to workers?", risk: "Medium", action: "Display first aider information or brief workers on who to contact." },
+        { id: "firstaid_3", text: "Are welfare facilities clean and suitable for the work area?", risk: "Low", action: "Clean or improve welfare facilities to a suitable standard." },
+        { id: "firstaid_4", text: "Is drinking water available where needed?", risk: "Medium", action: "Provide safe drinking water for workers." },
+        { id: "firstaid_5", text: "Are heat, fatigue, or basic health concerns being controlled where relevant?", risk: "High", action: "Apply suitable controls for heat, fatigue, or health-related concerns." }
+      ]},
+      { id: "electrical", title: "Electrical Safety", description: "Checks cables, sockets, panels, temporary power, and isolation practices.", questions: [
+        { id: "electrical_1", text: "Are plugs, sockets, and cables free from visible damage?", risk: "High", action: "Remove damaged electrical items from use and arrange repair or replacement." },
+        { id: "electrical_2", text: "Are electrical panels closed, labelled, and accessible?", risk: "High", action: "Close, label, and clear access to electrical panels." },
+        { id: "electrical_3", text: "Are extension leads and temporary power used safely and not overloaded?", risk: "High", action: "Reduce electrical load and replace unsafe temporary power arrangements." },
+        { id: "electrical_4", text: "Are cables routed to prevent trip hazards and damage?", risk: "Medium", action: "Reroute or protect cables to prevent trips and damage." },
+        { id: "electrical_5", text: "Is isolation or lockout used before electrical maintenance work?", risk: "High", action: "Stop the task and apply proper isolation or lockout before work continues." }
+      ]},
+      { id: "ppe", title: "PPE", description: "Checks availability, correct use, condition, and visitor protection.", questions: [
+        { id: "ppe_1", text: "Is the required PPE available for the task or area?", risk: "Medium", action: "Provide the required PPE before work continues." },
+        { id: "ppe_2", text: "Are workers wearing the correct PPE where required?", risk: "Medium", action: "Brief workers and ensure correct PPE is worn." },
+        { id: "ppe_3", text: "Is PPE clean, suitable, and in good condition?", risk: "Medium", action: "Replace damaged or unsuitable PPE." },
+        { id: "ppe_4", text: "Is task-specific PPE used for eye, hand, hearing, or respiratory hazards?", risk: "High", action: "Provide and use task-specific PPE for the identified hazard." },
+        { id: "ppe_5", text: "Are visitors provided with required PPE before entering controlled areas?", risk: "Medium", action: "Provide visitor PPE before access to controlled areas." }
+      ]},
+      { id: "equipment", title: "Plant, Tools & Equipment", description: "Checks machinery, tools, guards, inspections, and defective equipment control.", questions: [
+        { id: "equipment_1", text: "Are machine guards fitted and secure where required?", risk: "High", action: "Stop use of the machine until guards are fitted and secure." },
+        { id: "equipment_2", text: "Are emergency stops and safety devices accessible and working?", risk: "High", action: "Verify emergency stops and safety devices before equipment is used." },
+        { id: "equipment_3", text: "Are tools and equipment inspected before use?", risk: "Medium", action: "Complete pre-use inspection and remove unsafe equipment from service." },
+        { id: "equipment_4", text: "Are operators competent and authorised for the equipment they use?", risk: "High", action: "Restrict equipment use to competent and authorised operators." },
+        { id: "equipment_5", text: "Is defective equipment tagged, removed, or controlled?", risk: "High", action: "Tag and remove defective equipment or apply suitable controls." }
+      ]},
+      { id: "height", title: "Working at Height", description: "Checks ladders, scaffolds, edge protection, falling objects, and weather controls.", questions: [
+        { id: "height_1", text: "Are ladders suitable, inspected, and used safely?", risk: "High", action: "Stop unsafe ladder use and provide a suitable inspected access method." },
+        { id: "height_2", text: "Are scaffolds or platforms complete, stable, and inspected?", risk: "High", action: "Restrict scaffold or platform use until inspection and controls are confirmed." },
+        { id: "height_3", text: "Are open edges, floor openings, and fragile surfaces protected?", risk: "High", action: "Install protection for open edges, openings, or fragile surfaces." },
+        { id: "height_4", text: "Is fall protection used where there is a fall risk?", risk: "High", action: "Provide and verify suitable fall protection before work continues." },
+        { id: "height_5", text: "Are tools and materials controlled to prevent falling objects?", risk: "High", action: "Secure tools and materials to prevent falling objects." }
+      ]},
+      { id: "manual", title: "Manual Handling & Ergonomics", description: "Checks lifting, posture, workstation setup, repetitive work, and handling aids.", questions: [
+        { id: "manual_1", text: "Are heavy or awkward loads handled using suitable methods or aids?", risk: "Medium", action: "Use handling aids or revise the method for heavy or awkward loads." },
+        { id: "manual_2", text: "Are workers avoiding unsafe lifting, twisting, or overreaching?", risk: "Medium", action: "Brief workers on safer handling posture and adjust the task layout." },
+        { id: "manual_3", text: "Are workstations arranged to reduce strain and poor posture?", risk: "Low", action: "Adjust workstation setup to reduce ergonomic strain." },
+        { id: "manual_4", text: "Are repetitive tasks managed with breaks, rotation, or task variation?", risk: "Low", action: "Review repetitive tasks and apply breaks, rotation, or task variation." },
+        { id: "manual_5", text: "Are trolleys, carts, or handling aids in safe condition?", risk: "Medium", action: "Repair or replace unsafe handling aids." }
+      ]},
+      { id: "chemicals", title: "Chemicals & Hazardous Substances", description: "Checks labelling, storage, SDS, spill controls, and exposure protection.", questions: [
+        { id: "chemicals_1", text: "Are chemical containers labelled clearly?", risk: "High", action: "Label chemical containers clearly or remove unidentified containers from use." },
+        { id: "chemicals_2", text: "Are Safety Data Sheets available where chemicals are used or stored?", risk: "Medium", action: "Make current Safety Data Sheets available to users." },
+        { id: "chemicals_3", text: "Are chemicals stored securely and separated where incompatible?", risk: "High", action: "Improve chemical storage and separate incompatible substances." },
+        { id: "chemicals_4", text: "Are spill kits or spill controls available where needed?", risk: "Medium", action: "Provide suitable spill kits or spill controls." },
+        { id: "chemicals_5", text: "Are users protected from inhalation, skin, or eye exposure?", risk: "High", action: "Apply suitable ventilation, PPE, or exposure controls." }
+      ]},
+      { id: "vehicle", title: "Vehicle & Pedestrian Safety", description: "Checks vehicle movement, pedestrian routes, visibility, reversing, and loading areas.", questions: [
+        { id: "vehicle_1", text: "Are pedestrian routes separated from vehicle movement where practical?", risk: "High", action: "Separate pedestrian and vehicle routes or add clear controls." },
+        { id: "vehicle_2", text: "Are reversing and manoeuvring activities controlled safely?", risk: "High", action: "Apply reversing controls such as spotters, exclusion zones, or alarms." },
+        { id: "vehicle_3", text: "Are loading and unloading areas controlled and kept clear of unnecessary people?", risk: "High", action: "Control loading areas and keep unnecessary people out of the work zone." },
+        { id: "vehicle_4", text: "Are speed limits, signage, or traffic markings visible where needed?", risk: "Medium", action: "Improve speed control signage, markings, or traffic instructions." },
+        { id: "vehicle_5", text: "Are drivers and pedestrians following site movement rules?", risk: "Medium", action: "Brief drivers and pedestrians on site movement rules and reinforce compliance." }
+      ]},
+      { id: "contractor", title: "Contractor / Maintenance Work", description: "Checks work control, permits, isolation, supervision, and area handback.", questions: [
+        { id: "contractor_1", text: "Is contractor or maintenance work authorised before it starts?", risk: "High", action: "Stop unauthorised work and confirm approval before restart." },
+        { id: "contractor_2", text: "Are permits or task controls used for higher-risk work?", risk: "High", action: "Apply the required permit or task control before work continues." },
+        { id: "contractor_3", text: "Are work areas barricaded or controlled to protect others?", risk: "Medium", action: "Barricade or control the work area to protect nearby people." },
+        { id: "contractor_4", text: "Are isolation, lockout, or service shutdown controls used where needed?", risk: "High", action: "Apply isolation, lockout, or shutdown controls before work continues." },
+        { id: "contractor_5", text: "Is the area checked and made safe after maintenance work is completed?", risk: "Medium", action: "Inspect the area after maintenance and correct any remaining unsafe condition." }
+      ]},
+      { id: "environment", title: "Environmental Controls & Waste", description: "Checks waste segregation, leaks, emissions, drainage, and housekeeping impacts.", questions: [
+        { id: "environment_1", text: "Is waste separated and stored in suitable containers?", risk: "Low", action: "Separate waste and provide suitable containers." },
+        { id: "environment_2", text: "Are leaks, spills, or releases to drains prevented or controlled?", risk: "High", action: "Contain leaks or spills and protect drains from release." },
+        { id: "environment_3", text: "Are hazardous wastes labelled and controlled?", risk: "High", action: "Label and control hazardous waste storage." },
+        { id: "environment_4", text: "Are noise, dust, fumes, or odours controlled where relevant?", risk: "Medium", action: "Apply suitable controls for noise, dust, fumes, or odours." },
+        { id: "environment_5", text: "Are outdoor or storage areas managed to prevent environmental impact?", risk: "Medium", action: "Improve outdoor or storage controls to prevent environmental impact." }
+      ]},
+      { id: "communication", title: "Safety Communication & Reporting", description: "Checks signage, briefings, reporting, supervision, and visible safety expectations.", questions: [
+        { id: "communication_1", text: "Are safety signs and instructions clear and visible?", risk: "Medium", action: "Update or display clear safety signs and instructions." },
+        { id: "communication_2", text: "Do workers know how to report hazards, near misses, or incidents?", risk: "Medium", action: "Brief workers on how to report hazards, near misses, and incidents." },
+        { id: "communication_3", text: "Are safety briefings or toolbox talks completed where needed?", risk: "Low", action: "Complete and record the required safety briefing or toolbox talk." },
+        { id: "communication_4", text: "Are supervisors correcting unsafe conditions or behaviours promptly?", risk: "Medium", action: "Reinforce supervisor follow-up on unsafe conditions or behaviours." },
+        { id: "communication_5", text: "Are visitors or new workers given relevant safety information before entering the area?", risk: "Medium", action: "Provide relevant safety information before visitors or new workers enter the area." }
+      ]}
+    ];
+
+    var fields = ["business", "site", "locationType", "date", "inspector", "department", "positive", "notes"];
+    var inspections = [];
+    var currentId = "";
+    var canUseStorage = true;
+    var lastSavedText = "Last saved: not yet";
+    var toastTimer = null;
+    var undoData = null;
+    var suggestionExpanded = {};
+
+    function el(id) { return document.getElementById(id); }
+    function todayIso() { return new Date().toISOString().slice(0, 10); }
+    function uid(prefix) { return prefix + "_" + Date.now() + "_" + Math.random().toString(16).slice(2); }
+    function escapeHtml(value) {
+      return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+    function escapeXml(value) {
+      return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+    }
+    function formatDateDisplay(value) {
+      if (!value) return "No date";
+      var d = new Date(value + "T00:00:00");
+      if (isNaN(d.getTime())) return value;
+      return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+    function formatDateTime(value) {
+      var d = value ? new Date(value) : new Date();
+      return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+    function addDaysIso(days) {
+      var d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
+    }
+    function dueDateForRisk(risk) {
+      if (risk === "High") return addDaysIso(3);
+      if (risk === "Medium") return addDaysIso(14);
+      return addDaysIso(30);
+    }
+    function riskClass(risk) { return String(risk || "Medium").toLowerCase(); }
+    function moduleById(id) { return CHECKLISTS.find(function (m) { return m.id === id; }); }
+    function questionById(moduleId, questionId) {
+      var m = moduleById(moduleId);
+      if (!m) return null;
+      return m.questions.find(function (q) { return q.id === questionId; }) || null;
+    }
+    function current() {
+      var found = inspections.find(function (inspection) { return inspection.id === currentId; });
+      if (!found) {
+        found = createBlankInspection();
+        inspections.push(found);
+        currentId = found.id;
+      }
+      return found;
+    }
+    function createModuleState() {
+      var modules = {};
+      CHECKLISTS.forEach(function (m) { modules[m.id] = { active: false, open: false, answers: {}, ignored: {} }; });
+      return modules;
+    }
+    function createBlankInspection() {
+      return {
+        id: uid("inspection"),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        name: "Untitled inspection",
+        business: "",
+        site: "",
+        locationType: "",
+        date: todayIso(),
+        inspector: "",
+        department: "",
+        positive: "",
+        notes: "",
+        modules: createModuleState(),
+        actions: []
+      };
+    }
+    function ensureInspectionShape(inspection) {
+      if (!inspection.modules) inspection.modules = createModuleState();
+      CHECKLISTS.forEach(function (m) {
+        if (!inspection.modules[m.id]) inspection.modules[m.id] = { active: false, open: false, answers: {}, ignored: {} };
+        if (!inspection.modules[m.id].answers) inspection.modules[m.id].answers = {};
+        if (!inspection.modules[m.id].ignored) inspection.modules[m.id].ignored = {};
+      });
+      if (!inspection.actions) inspection.actions = [];
+      fields.forEach(function (id) { if (inspection[id] === undefined) inspection[id] = id === "date" ? todayIso() : ""; });
+      if (!inspection.name) inspection.name = "Untitled inspection";
+      return inspection;
+    }
+    function updateInspectionName(inspection) {
+      var parts = [];
+      if (inspection.business) parts.push(inspection.business.trim());
+      if (inspection.site) parts.push(inspection.site.trim());
+      if (inspection.date) parts.push(formatDateDisplay(inspection.date));
+      inspection.name = parts.length ? parts.join(" - ") : "Untitled inspection";
+    }
+    function checkStorage() {
+      try {
+        localStorage.setItem("__safety_snapshot_test__", "1");
+        localStorage.removeItem("__safety_snapshot_test__");
+        canUseStorage = true;
+      } catch (err) {
+        canUseStorage = false;
+      }
+      el("storageWarning").className = canUseStorage ? "warning" : "warning show";
+    }
+    function loadStore() {
+      checkStorage();
+      if (!canUseStorage) {
+        var blank = createBlankInspection();
+        inspections = [blank];
+        currentId = blank.id;
+        return;
+      }
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) throw new Error("No saved data");
+        var parsed = JSON.parse(raw);
+        inspections = Array.isArray(parsed.inspections) ? parsed.inspections.map(ensureInspectionShape) : [];
+        currentId = parsed.currentId || (inspections[0] && inspections[0].id) || "";
+        lastSavedText = parsed.lastSavedText || lastSavedText;
+        if (!inspections.length) throw new Error("Empty store");
+      } catch (err) {
+        var blank = createBlankInspection();
+        inspections = [blank];
+        currentId = blank.id;
+      }
+    }
+    function saveStore(showMessage) {
+      var inspection = current();
+      updateInspectionName(inspection);
+      inspection.updatedAt = new Date().toISOString();
+      lastSavedText = "Last saved: " + formatDateTime(new Date().toISOString());
+      if (canUseStorage) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentId: currentId, inspections: inspections, lastSavedText: lastSavedText }));
+        } catch (err) {
+          canUseStorage = false;
+          el("storageWarning").className = "warning show";
+        }
+      }
+      if (showMessage) showToast("Saved");
+    }
+    function autosave() {
+      saveStore(false);
+      render();
+    }
+    function clearUndo() {
+      undoData = null;
+      if (toastTimer) window.clearTimeout(toastTimer);
+      var toast = el("toast");
+      toast.className = "toast";
+      toast.innerHTML = "";
+    }
+    function showToast(message, undoCallback) {
+      var toast = el("toast");
+      if (toastTimer) window.clearTimeout(toastTimer);
+      toast.innerHTML = escapeHtml(message) + (undoCallback ? ' <button type="button" onclick="undoLastDelete()">Undo</button>' : "");
+      toast.className = "toast show";
+      if (!undoCallback) {
+        toastTimer = window.setTimeout(function () { toast.className = "toast"; }, 1800);
+      }
+    }
+
+    function updateFromFields() {
+      var inspection = current();
+      fields.forEach(function (id) { inspection[id] = el(id).value; });
+      updateInspectionName(inspection);
+    }
+    function updateLocationNote() {
+      var inspection = current();
+      if (inspection.locationType) {
+        el("locationNote").style.display = "block";
+        el("locationNote").textContent = "Location type selected: " + inspection.locationType + ". This version uses the generic workplace checklist.";
+      } else {
+        el("locationNote").style.display = "none";
+        el("locationNote").textContent = "";
+      }
+    }
+    function renderFields() {
+      var inspection = current();
+      fields.forEach(function (id) { el(id).value = inspection[id] || ""; });
+      updateLocationNote();
+    }
+    function autosaveFieldChange() {
+      saveStore(false);
+      renderSummary();
+      renderSavedList();
+      updateLocationNote();
+    }
+    function answerText(value) {
+      if (value === "yes") return "Yes";
+      if (value === "no") return "No";
+      if (value === "na") return "N/A";
+      return "Unanswered";
+    }
+    function complianceBracket(score) {
+      score = Number(score) || 0;
+      if (score <= 50) return { label: "Urgent improvement", range: "0-50%", className: "compliance-urgent", color: "A84A4A", soft: "FAEAEA" };
+      if (score <= 70) return { label: "Needs improvement", range: "51-70%", className: "compliance-needs", color: "9A6B22", soft: "FFF3DC" };
+      if (score <= 90) return { label: "Mostly compliant", range: "71-90%", className: "compliance-mostly", color: "486F9C", soft: "E9F1FB" };
+      return { label: "Strong compliance", range: "91-100%", className: "compliance-strong", color: "3F7B61", soft: "E9F4EF" };
+    }
+    function complianceBracketText(score) {
+      var bracket = complianceBracket(score);
+      return bracket.label + " (" + bracket.range + ")";
+    }
+    function computeStats() {
+      var inspection = current();
+      var applicableQuestions = 0, answered = 0, yes = 0, no = 0, na = 0;
+      var risks = { High: 0, Medium: 0, Low: 0 };
+      CHECKLISTS.forEach(function (m) {
+        var ms = inspection.modules[m.id];
+        if (!ms || !ms.active) return;
+        applicableQuestions += m.questions.length;
+        m.questions.forEach(function (q) {
+          var value = ms.answers[q.id] || "";
+          if (value) answered += 1;
+          if (value === "yes") yes += 1;
+          if (value === "no") { no += 1; risks[q.risk] += 1; }
+          if (value === "na") na += 1;
+        });
+      });
+      var scored = yes + no;
+      var score = scored ? Math.round((yes / scored) * 100) : 0;
+      var progress = applicableQuestions ? Math.round((answered / applicableQuestions) * 100) : 0;
+      var activeActions = inspection.actions.filter(function (a) { return a.status !== "Closed"; }).length;
+      var openActions = inspection.actions.filter(function (a) { return a.status === "Open"; }).length;
+      return { applicableQuestions: applicableQuestions, answered: answered, yes: yes, no: no, na: na, score: score, progress: progress, risks: risks, activeActions: activeActions, openActions: openActions, totalActions: inspection.actions.length };
+    }
+    function statsForModule(moduleId) {
+      var inspection = current();
+      var module = moduleById(moduleId);
+      var ms = inspection.modules[moduleId];
+      var answered = 0, yes = 0, no = 0, na = 0;
+      module.questions.forEach(function (q) {
+        var value = ms.answers[q.id] || "";
+        if (value) answered += 1;
+        if (value === "yes") yes += 1;
+        if (value === "no") no += 1;
+        if (value === "na") na += 1;
+      });
+      return { answered: answered, total: module.questions.length, yes: yes, no: no, na: na, score: yes + no ? Math.round((yes / (yes + no)) * 100) : 0 };
+    }
+    function actionStatusCounts() {
+      var counts = { Open: 0, "In Progress": 0, Closed: 0 };
+      current().actions.forEach(function (a) { counts[a.status || "Open"] = (counts[a.status || "Open"] || 0) + 1; });
+      return counts;
+    }
+    function hasActionForQuestion(moduleId, questionId) {
+      return current().actions.some(function (a) { return a.moduleId === moduleId && a.questionId === questionId; });
+    }
+
+    function renderSummary() {
+      var stats = computeStats();
+      var bracket = complianceBracket(stats.score);
+      var bracketText = complianceBracketText(stats.score);
+      ["mobileScore", "sideScore", "summaryScore"].forEach(function (id) { el(id).textContent = stats.score + "%"; });
+      el("mobileScore").className = "mobile-score " + bracket.className;
+      el("sideScore").parentNode.className = "sidebar-score " + bracket.className;
+      el("sideScoreBracket").textContent = bracketText;
+      el("summaryScoreCard").className = "card " + bracket.className;
+      el("summaryScoreBracket").textContent = bracketText;
+      el("summaryHeader").textContent = stats.score + "% - " + bracketText + " - " + stats.openActions + " open actions";
+      el("summaryProgress").textContent = stats.progress + "%";
+      el("summaryFindings").textContent = stats.no;
+      el("summaryOpenActions").textContent = stats.openActions;
+      el("riskHigh").textContent = stats.risks.High;
+      el("riskMedium").textContent = stats.risks.Medium;
+      el("riskLow").textContent = stats.risks.Low;
+      el("progressText").textContent = stats.progress + "%";
+      el("scoreText").textContent = stats.score + "% - " + bracketText;
+      el("progressFill").style.width = stats.progress + "%";
+      el("scoreFill").style.width = stats.score + "%";
+      el("scoreFill").className = "progress-fill " + bracket.className;
+      el("lastSaved").textContent = lastSavedText;
+      var counts = actionStatusCounts();
+      el("actionStatusCounts").textContent = "Open: " + counts.Open + " - In Progress: " + counts["In Progress"] + " - Closed: " + counts.Closed;
+    }
+    function renderSavedList() {
+      el("savedCount").textContent = inspections.length + " saved";
+      var html = "";
+      inspections.slice().sort(function (a, b) { return String(b.updatedAt).localeCompare(String(a.updatedAt)); }).forEach(function (inspection) {
+        var isCurrent = inspection.id === currentId;
+        html += '<div class="saved-item"><div class="saved-main"><div><strong>' + escapeHtml(inspection.name || "Untitled inspection") + '</strong><p class="muted small">' + escapeHtml(formatDateDisplay(inspection.date)) + '</p></div>' + (isCurrent ? '<span class="badge info">Current</span>' : '') + '</div><div class="saved-actions">';
+        html += '<button class="btn small-btn secondary" type="button" onclick="loadInspection(\'' + inspection.id + '\')">Open</button>';
+        html += '<button class="btn small-btn danger" type="button" onclick="deleteInspection(\'' + inspection.id + '\')">Delete</button>';
+        html += '</div></div>';
+      });
+      el("savedList").innerHTML = html || '<div class="empty">No saved inspections yet.</div>';
+    }
+    function renderModules() {
+      var inspection = current();
+      var html = "";
+      CHECKLISTS.forEach(function (m, idx) {
+        var ms = inspection.modules[m.id];
+        var open = ms.open ? " open" : "";
+        var skipped = ms.active ? "" : " skipped";
+        var moduleStats = statsForModule(m.id);
+        html += '<div class="module' + open + skipped + '" id="module_' + m.id + '">';
+        html += '<div class="module-head"><button class="module-head-main" type="button" onclick="toggleModuleOpen(\'' + m.id + '\')"><div class="module-title-row"><div class="module-title"><strong>' + (idx + 1) + '. ' + escapeHtml(m.title) + '</strong><span>' + escapeHtml(m.description) + '</span></div><span class="module-summary">' + (ms.active ? (moduleStats.answered + '/' + moduleStats.total + ' - ' + moduleStats.score + '%') : '') + '</span></div></button>' + (!ms.active ? '<div class="module-head-actions"><button class="btn small-btn" type="button" onclick="useChecklist(event, \'' + m.id + '\')">Use this checklist</button></div>' : '') + '</div>';
+        html += '<div class="module-body">';
+        if (!ms.active) {
+          html += '<div class="module-top-actions"><button class="btn small-btn" type="button" onclick="useChecklist(event, \'' + m.id + '\')">Use this checklist</button></div>';
+          m.questions.forEach(function (q) { html += '<div class="preview-question" onclick="showToast(\'Use this checklist to answer these questions.\')">' + escapeHtml(q.text) + '</div>'; });
+        } else {
+          html += '<div class="module-top-actions"><button class="btn small-btn secondary" type="button" onclick="skipChecklist(event, \'' + m.id + '\')">Skip this checklist</button></div>';
+          m.questions.forEach(function (q, qIndex) {
+            var answer = ms.answers[q.id] || "";
+            html += '<div class="question" id="question_' + q.id + '"><div class="question-title"><strong>' + (qIndex + 1) + '. ' + escapeHtml(q.text) + '</strong>' + (answer === "no" ? '<span class="badge ' + riskClass(q.risk) + '">' + escapeHtml(q.risk) + '</span>' : '') + '</div>';
+            html += '<div class="answers"><button type="button" class="' + (answer === "yes" ? 'active-yes' : '') + '" onclick="setAnswer(\'' + m.id + '\', \'' + q.id + '\', \'yes\')">Yes</button><button type="button" class="' + (answer === "no" ? 'active-no' : '') + '" onclick="setAnswer(\'' + m.id + '\', \'' + q.id + '\', \'no\')">No</button><button type="button" class="' + (answer === "na" ? 'active-na' : '') + '" onclick="setAnswer(\'' + m.id + '\', \'' + q.id + '\', \'na\')">N/A</button></div>';
+            if (answer === "no") html += renderSuggestion(m, q, ms);
+            html += '</div>';
+          });
+        }
+        html += '</div></div>';
+      });
+      el("moduleList").innerHTML = html;
+    }
+    function renderSuggestion(m, q, ms) {
+      if (hasActionForQuestion(m.id, q.id)) return '<div class="action-added">Corrective action added.</div>';
+      if (ms.ignored && ms.ignored[q.id]) return '<div class="muted small">Suggestion ignored.</div>';
+      var expanded = suggestionExpanded[q.id] ? " expanded" : "";
+      var defaultDue = dueDateForRisk(q.risk);
+      var html = '<div class="suggestion' + expanded + '" id="suggestion_' + q.id + '">';
+      html += '<div class="suggestion-main"><span>Suggested finding</span><strong>' + escapeHtml(q.action) + '</strong></div>';
+      html += '<div class="suggestion-details"><label>Risk<select id="risk_' + q.id + '" onchange="updateSuggestionDue(\'' + q.id + '\')"><option' + (q.risk === "Low" ? ' selected' : '') + '>Low</option><option' + (q.risk === "Medium" ? ' selected' : '') + '>Medium</option><option' + (q.risk === "High" ? ' selected' : '') + '>High</option></select></label><label>Due date<input id="due_' + q.id + '" type="date" value="' + defaultDue + '"></label><label>Owner<input id="owner_' + q.id + '" type="text" placeholder="Owner"></label></div>';
+      html += '<div class="suggestion-actions"><button class="btn small-btn mobile-inline start-mobile" type="button" onclick="expandSuggestion(\'' + q.id + '\')">Add action</button><button class="btn small-btn desktop-inline" type="button" onclick="addSuggestedAction(\'' + m.id + '\', \'' + q.id + '\')">Add action</button><button class="btn small-btn mobile-inline confirm-mobile" type="button" onclick="addSuggestedAction(\'' + m.id + '\', \'' + q.id + '\')">Confirm action</button><button class="btn small-btn secondary" type="button" onclick="ignoreSuggestion(\'' + m.id + '\', \'' + q.id + '\')">Ignore</button></div>';
+      html += '</div>';
+      return html;
+    }
+    function renderActions() {
+      var inspection = current();
+      var actions = inspection.actions.slice().sort(function (a, b) {
+        var riskOrder = { High: 0, Medium: 1, Low: 2 };
+        var statusOrder = { Open: 0, "In Progress": 1, Closed: 2 };
+        if ((statusOrder[a.status] || 0) !== (statusOrder[b.status] || 0)) return (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
+        if ((riskOrder[a.risk] || 9) !== (riskOrder[b.risk] || 9)) return (riskOrder[a.risk] || 9) - (riskOrder[b.risk] || 9);
+        return String(a.due || "9999-12-31").localeCompare(String(b.due || "9999-12-31"));
+      });
+      if (!actions.length) {
+        el("actionsList").innerHTML = '<div class="empty">No corrective actions added yet.</div>';
+        return;
+      }
+      var html = "";
+      CHECKLISTS.forEach(function (m) {
+        var group = actions.filter(function (a) { return a.moduleId === m.id; });
+        if (!group.length) return;
+        html += '<div class="action-group"><h3>' + escapeHtml(m.title) + '</h3>';
+        group.forEach(function (a) { html += actionCard(a); });
+        html += '</div>';
+      });
+      actions.filter(function (a) { return !a.moduleId; }).forEach(function (a) { html += actionCard(a); });
+      el("actionsList").innerHTML = html;
+    }
+    function actionCard(a) {
+      var closed = a.status === "Closed" ? " closed" : "";
+      var linked = a.questionText ? '<div>Checklist question: <strong>' + escapeHtml(a.questionText) + '</strong></div>' : "";
+      return '<div class="action' + closed + '"><header><strong>' + escapeHtml(a.finding || "Not entered") + '</strong><span class="badge ' + riskClass(a.risk) + '">' + escapeHtml(a.risk || "Medium") + '</span></header><div class="action-meta">' + linked + '<div>Status: <strong>' + escapeHtml(a.status || "Open") + '</strong></div><div>Owner: <strong>' + escapeHtml(a.owner || "Unassigned") + '</strong></div><div>Due: <strong>' + escapeHtml(a.due || "No date") + '</strong></div></div><div class="action-buttons"><button class="btn small-btn secondary" type="button" onclick="openEditModal(\'' + a.id + '\')">Edit</button><button class="btn small-btn danger" type="button" onclick="deleteAction(\'' + a.id + '\')">Delete</button></div></div>';
+    }
+    function render() {
+      renderFields();
+      renderSummary();
+      renderSavedList();
+      renderModules();
+      renderActions();
+    }
+
+    function bindFieldEvents() {
+      fields.forEach(function (id) {
+        el(id).addEventListener("input", function () { clearUndo(); updateFromFields(); autosaveFieldChange(); });
+        el(id).addEventListener("change", function () { clearUndo(); updateFromFields(); autosaveFieldChange(); });
+      });
+    }
+    function toggleModuleOpen(moduleId) {
+      var ms = current().modules[moduleId];
+      ms.open = !ms.open;
+      autosave();
+    }
+    function useChecklist(event, moduleId) {
+      event.stopPropagation();
+      clearUndo();
+      var ms = current().modules[moduleId];
+      ms.active = true;
+      ms.open = true;
+      autosave();
+    }
+    function skipChecklist(event, moduleId) {
+      event.stopPropagation();
+      clearUndo();
+      var inspection = current();
+      var ms = inspection.modules[moduleId];
+      if (!confirm("Skipping this checklist will clear its answers and linked actions. Continue?")) return;
+      ms.active = false;
+      ms.open = false;
+      ms.answers = {};
+      ms.ignored = {};
+      inspection.actions = inspection.actions.filter(function (a) { return a.moduleId !== moduleId; });
+      autosave();
+    }
+    function setAnswer(moduleId, questionId, value) {
+      clearUndo();
+      var ms = current().modules[moduleId];
+      ms.answers[questionId] = value;
+      if (value !== "no") {
+        delete ms.ignored[questionId];
+        delete suggestionExpanded[questionId];
+      }
+      autosave();
+    }
+    function expandSuggestion(questionId) {
+      suggestionExpanded[questionId] = true;
+      render();
+    }
+    function ignoreSuggestion(moduleId, questionId) {
+      clearUndo();
+      current().modules[moduleId].ignored[questionId] = true;
+      autosave();
+    }
+    function updateSuggestionDue(questionId) {
+      var riskField = el("risk_" + questionId);
+      var dueField = el("due_" + questionId);
+      if (riskField && dueField) dueField.value = dueDateForRisk(riskField.value);
+    }
+    function addSuggestedAction(moduleId, questionId) {
+      clearUndo();
+      var q = questionById(moduleId, questionId);
+      var m = moduleById(moduleId);
+      if (!q || !m) return;
+      var riskField = el("risk_" + questionId);
+      var dueField = el("due_" + questionId);
+      var ownerField = el("owner_" + questionId);
+      var risk = riskField ? riskField.value : q.risk;
+      var due = dueField ? dueField.value : dueDateForRisk(risk);
+      var owner = ownerField ? ownerField.value : "";
+      current().actions.push({
+        id: uid("action"), finding: q.action, risk: risk, owner: owner, due: due, status: "Open",
+        moduleId: moduleId, moduleTitle: m.title, questionId: questionId, questionText: q.text
+      });
+      delete suggestionExpanded[questionId];
+      autosave();
+      showToast("Action added");
+    }
+    function addManualAction() {
+      clearUndo();
+      var finding = el("manualFinding").value.trim();
+      if (!finding) { showToast("Add a finding first"); return; }
+      current().actions.push({ id: uid("action"), finding: finding, risk: el("manualRisk").value, owner: el("manualOwner").value, due: el("manualDue").value, status: "Open" });
+      el("manualFinding").value = "";
+      el("manualRisk").value = "Medium";
+      el("manualOwner").value = "";
+      el("manualDue").value = "";
+      autosave();
+      showToast("Manual action added");
+    }
+    function deleteAction(actionId) {
+      var inspection = current();
+      var index = inspection.actions.findIndex(function (a) { return a.id === actionId; });
+      if (index < 0) return;
+      undoData = { type: "action", inspectionId: inspection.id, action: inspection.actions[index], index: index };
+      inspection.actions.splice(index, 1);
+      saveStore(false);
+      render();
+      showToast("Action deleted -", true);
+    }
+    function undoLastDelete() {
+      if (!undoData) return;
+      if (undoData.type === "action") {
+        var inspection = inspections.find(function (i) { return i.id === undoData.inspectionId; });
+        if (inspection) inspection.actions.splice(undoData.index, 0, undoData.action);
+      }
+      undoData = null;
+      autosave();
+      showToast("Restored");
+    }
+    function openEditModal(actionId) {
+      clearUndo();
+      var action = current().actions.find(function (a) { return a.id === actionId; });
+      if (!action) return;
+      el("editActionId").value = action.id;
+      el("editFinding").value = action.finding || "";
+      el("editRisk").value = action.risk || "Medium";
+      el("editStatus").value = action.status || "Open";
+      el("editOwner").value = action.owner || "";
+      el("editDue").value = action.due || "";
+      el("editModal").className = "modal-backdrop show";
+    }
+    function closeEditModal() { el("editModal").className = "modal-backdrop"; }
+    function saveEditedAction() {
+      var id = el("editActionId").value;
+      var action = current().actions.find(function (a) { return a.id === id; });
+      if (!action) return;
+      action.finding = el("editFinding").value;
+      action.risk = el("editRisk").value;
+      action.status = el("editStatus").value;
+      action.owner = el("editOwner").value;
+      action.due = el("editDue").value;
+      closeEditModal();
+      autosave();
+      showToast("Action updated");
+    }
+    function newInspection() {
+      clearUndo();
+      updateFromFields();
+      saveStore(false);
+      if (!confirm("Start a new inspection? Your current inspection has been autosaved.")) return;
+      var blank = createBlankInspection();
+      inspections.push(blank);
+      currentId = blank.id;
+      autosave();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function loadInspection(id) {
+      clearUndo();
+      if (id === currentId) return;
+      updateFromFields();
+      saveStore(false);
+      if (!confirm("Open this saved inspection? Your current inspection will be autosaved first.")) return;
+      currentId = id;
+      autosave();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function deleteInspection(id) {
+      clearUndo();
+      if (!confirm("Delete this saved inspection? This cannot be undone.")) return;
+      inspections = inspections.filter(function (inspection) { return inspection.id !== id; });
+      if (!inspections.length) inspections.push(createBlankInspection());
+      if (currentId === id) currentId = inspections[0].id;
+      autosave();
+      showToast("Inspection deleted");
+    }
+
+    function keyFieldsMissing() {
+      var i = current();
+      return !i.business || !i.site || !i.date || !i.inspector || !i.department;
+    }
+    function proceedWithBlankFieldWarning(actionName) {
+      updateFromFields();
+      if (keyFieldsMissing()) return confirm("Some key inspection details are blank. Continue " + actionName + "?");
+      return true;
+    }
+    function reportData() {
+      var inspection = current();
+      var stats = computeStats();
+      var findings = [];
+      var nas = [];
+      var checklistSummaries = [];
+      CHECKLISTS.forEach(function (m) {
+        var ms = inspection.modules[m.id];
+        if (!ms || !ms.active) return;
+        var moduleStats = statsForModule(m.id);
+        var moduleActions = inspection.actions.filter(function (a) { return a.moduleId === m.id; });
+        checklistSummaries.push({
+          title: m.title,
+          description: m.description,
+          answered: moduleStats.answered,
+          total: moduleStats.total,
+          yes: moduleStats.yes,
+          no: moduleStats.no,
+          na: moduleStats.na,
+          score: moduleStats.score,
+          activeActions: moduleActions.filter(function (a) { return a.status !== "Closed"; }).length
+        });
+        m.questions.forEach(function (q) {
+          var value = ms.answers[q.id] || "";
+          if (value === "no") findings.push({ section: m.title, text: q.text, risk: q.risk });
+          if (value === "na") nas.push({ section: m.title, text: q.text });
+        });
+      });
+      return { inspection: inspection, stats: stats, findings: findings, nas: nas, actions: inspection.actions.slice(), checklists: checklistSummaries };
+    }
+    function executiveSentence(data) {
+      return "Inspection completed with " + data.stats.score + "% compliance (" + complianceBracketText(data.stats.score) + "), " + data.findings.length + " findings, and " + data.stats.activeActions + " active corrective actions.";
+    }
+    function buildReportHtml() {
+      var data = reportData();
+      var i = data.inspection;
+      var bracket = complianceBracket(data.stats.score);
+      var bracketText = complianceBracketText(data.stats.score);
+      var html = '<!doctype html><html><head><meta charset="utf-8"><title>Safety Snapshot Report</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#172026;line-height:1.45;margin:0;font-size:12px}.report-head{border-bottom:3px solid #26384a;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;gap:20px;align-items:flex-end}.brand h1{font-size:28px;line-height:1.1;margin:0;color:#172026}.brand p{margin:6px 0 0;color:#66717a}.score-box{text-align:right;border:1px solid #c9d1d8;background:#f6f7f8;padding:10px 14px;min-width:130px}.score-box strong{display:block;font-size:30px;line-height:1}.score-box span{display:block;margin-top:4px;font-size:11px}.score-box.compliance-urgent,.metric.compliance-urgent{border-color:#a84a4a;background:#faeaea;color:#a84a4a}.score-box.compliance-needs,.metric.compliance-needs{border-color:#9a6b22;background:#fff3dc;color:#9a6b22}.score-box.compliance-mostly,.metric.compliance-mostly{border-color:#486f9c;background:#e9f1fb;color:#486f9c}.score-box.compliance-strong,.metric.compliance-strong{border-color:#3f7b61;background:#e9f4ef;color:#3f7b61}.summary-line{font-size:14px;font-weight:700;color:#26384a;background:#eef2f5;border-left:4px solid #26384a;padding:10px 12px;margin:12px 0 14px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 16px}.metric{border:1px solid #dfe4e8;background:#f9fafb;padding:9px}.metric strong{display:block;font-size:20px}.metric span{display:block;font-size:11px;margin-top:2px}h2{font-size:16px;margin:20px 0 8px;color:#26384a;border-bottom:1px solid #c9d1d8;padding-bottom:5px}h3{font-size:13px;margin:14px 0 6px;color:#4d6378}.meta{width:100%;border-collapse:collapse;margin:8px 0 12px}.meta th{width:20%;background:#eef2f5;color:#172026}.meta td{width:30%}table{width:100%;border-collapse:collapse;margin:8px 0 14px;page-break-inside:auto}tr{page-break-inside:avoid;page-break-after:auto}th,td{border:1px solid #dfe4e8;padding:7px 8px;text-align:left;vertical-align:top}th{background:#eef2f5;color:#172026;font-weight:700}.section{page-break-inside:avoid}.note{white-space:pre-wrap;margin:0 0 10px}.risk-high{color:#a84a4a;font-weight:700}.risk-medium{color:#9a6b22;font-weight:700}.risk-low{color:#3f7b61;font-weight:700}.closed{color:#777;background:#f6f7f8}.footer{margin-top:24px;font-size:10px;color:#66717a;border-top:1px solid #dfe4e8;padding-top:8px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.report-head,.section{break-inside:avoid}}</style></head><body>';
+      html += '<div class="report-head"><div class="brand"><h1>Safety Snapshot Report</h1><p>Generated ' + escapeHtml(formatDateDisplay(todayIso())) + ' | ' + escapeHtml(i.site || "Inspection summary") + '</p></div><div class="score-box ' + bracket.className + '"><strong>' + data.stats.score + '%</strong><span>' + escapeHtml(bracketText) + '</span></div></div>';
+      html += '<table class="meta"><tr><th>Business Unit / Company</th><td>' + escapeHtml(i.business || "Not entered") + '</td><th>Site / Area</th><td>' + escapeHtml(i.site || "Not entered") + '</td></tr>';
+      html += '<tr><th>Location Type</th><td>' + escapeHtml(i.locationType || "Not entered") + '</td><th>Inspection date</th><td>' + escapeHtml(i.date || "Not entered") + '</td></tr>';
+      html += '<tr><th>Inspector</th><td>' + escapeHtml(i.inspector || "Not entered") + '</td><th>Department</th><td>' + escapeHtml(i.department || "Not entered") + '</td></tr></table>';
+      html += '<div class="summary-line">' + escapeHtml(executiveSentence(data)) + '</div>';
+      html += '<div class="metrics"><div class="metric ' + bracket.className + '"><strong>' + data.stats.score + '%</strong><span>' + escapeHtml(bracketText) + '</span></div><div class="metric"><strong>' + data.findings.length + '</strong><span>Findings</span></div><div class="metric"><strong>' + data.stats.totalActions + '</strong><span>Total actions</span></div><div class="metric"><strong>' + data.stats.activeActions + '</strong><span>Active actions</span></div></div>';
+      html += '<div class="section"><h2>Positive Observations</h2><p class="note">' + escapeHtml(i.positive || "No positive observations recorded.") + '</p></div>';
+      if (i.notes) html += '<div class="section"><h2>Inspection Notes</h2><p class="note">' + escapeHtml(i.notes) + '</p></div>';
+      html += '<h2>Findings</h2>';
+      if (!data.findings.length) html += '<p>No findings recorded.</p>'; else {
+        html += '<table><tr><th>No.</th><th>Section</th><th>Finding</th><th>Risk</th></tr>';
+        data.findings.forEach(function (f, idx) { html += '<tr><td>' + (idx + 1) + '</td><td>' + escapeHtml(f.section) + '</td><td>' + escapeHtml(f.text) + '</td><td class="risk-' + riskClass(f.risk) + '">' + escapeHtml(f.risk) + '</td></tr>'; });
+        html += '</table>';
+      }
+      html += '<h2>Corrective Actions</h2>';
+      if (!data.actions.length) html += '<p>No corrective actions recorded.</p>'; else {
+        CHECKLISTS.forEach(function (m) {
+          var group = data.actions.filter(function (a) { return a.moduleId === m.id; });
+          if (!group.length) return;
+          html += '<h3>' + escapeHtml(m.title) + '</h3>' + actionReportTable(group);
+        });
+        var manual = data.actions.filter(function (a) { return !a.moduleId; });
+        if (manual.length) html += actionReportTable(manual);
+      }
+      if (data.nas.length) {
+        html += '<h2>N/A Answers</h2><table><tr><th>Section</th><th>Question</th></tr>';
+        data.nas.forEach(function (n) { html += '<tr><td>' + escapeHtml(n.section) + '</td><td>' + escapeHtml(n.text) + '</td></tr>'; });
+        html += '</table>';
+      }
+      html += '<h2>Checklist Summary</h2>';
+      if (!data.checklists.length) html += '<p>No checklists were used.</p>'; else {
+        html += '<table><tr><th>Checklist</th><th>Purpose</th><th>Progress</th><th>Score</th><th>Findings</th><th>N/A</th><th>Active actions</th></tr>';
+        data.checklists.forEach(function (m) {
+          var moduleBracket = complianceBracket(m.score);
+          html += '<tr><td><strong>' + escapeHtml(m.title) + '</strong></td><td>' + escapeHtml(m.description) + '</td><td>' + m.answered + '/' + m.total + '</td><td style="color:#' + moduleBracket.color + ';font-weight:700">' + m.score + '%<br><span style="font-weight:400">' + escapeHtml(complianceBracketText(m.score)) + '</span></td><td>' + m.no + '</td><td>' + m.na + '</td><td>' + m.activeActions + '</td></tr>';
+        });
+        html += '</table>';
+      }
+      html += '<p class="footer">This tool is for general workplace safety inspection support. It does not replace legal compliance assessment, competent professional judgment, or employer-specific procedures.</p>';
+      html += '</body></html>';
+      return html;
+    }
+    function actionReportTable(actions) {
+      var html = '<table><tr><th>No.</th><th>Finding</th><th>Risk</th><th>Owner</th><th>Due date</th><th>Status</th></tr>';
+      actions.forEach(function (a, idx) {
+        var cls = a.status === "Closed" ? ' class="closed"' : "";
+        html += '<tr' + cls + '><td>' + (idx + 1) + '</td><td>' + escapeHtml(a.finding || "Not entered") + '</td><td class="risk-' + riskClass(a.risk) + '">' + escapeHtml(a.risk || "Medium") + '</td><td>' + escapeHtml(a.owner || "Unassigned") + '</td><td>' + escapeHtml(a.due || "No date") + '</td><td>' + escapeHtml(a.status || "Open") + '</td></tr>';
+      });
+      html += '</table>';
+      return html;
+    }
+    function printReport() {
+      if (!proceedWithBlankFieldWarning("printing")) return;
+      var win = window.open("", "_blank");
+      if (!win) { showToast("Popup blocked"); return; }
+      win.document.open();
+      win.document.write(buildReportHtml());
+      win.document.close();
+      win.focus();
+      win.print();
+    }
+    function emailReport() {
+      if (!proceedWithBlankFieldWarning("emailing")) return;
+      var data = reportData();
+      var i = data.inspection;
+      var lines = [];
+      function divider() { lines.push("------------------------------------------------------------"); }
+      function field(label, value) { lines.push(label + ": " + (value || "Not entered")); }
+      lines.push("SAFETY SNAPSHOT REPORT");
+      lines.push(i.site ? i.site : "Inspection summary");
+      divider();
+      lines.push("");
+      lines.push("INSPECTION DETAILS");
+      field("Business Unit / Company", i.business);
+      field("Site / Area", i.site);
+      field("Location Type", i.locationType);
+      field("Inspection date", i.date);
+      field("Inspector", i.inspector);
+      field("Department", i.department);
+      lines.push("");
+      lines.push("SUMMARY");
+      lines.push("Compliance score: " + data.stats.score + "%");
+      lines.push("Compliance bracket: " + complianceBracketText(data.stats.score));
+      lines.push("Findings: " + data.findings.length);
+      lines.push("Total corrective actions: " + data.stats.totalActions);
+      lines.push("Active corrective actions: " + data.stats.activeActions);
+      lines.push("");
+      lines.push(executiveSentence(data));
+      lines.push("");
+      lines.push("POSITIVE OBSERVATIONS");
+      lines.push(i.positive || "No positive observations recorded.");
+      if (i.notes) {
+        lines.push("");
+        lines.push("INSPECTION NOTES");
+        lines.push(i.notes);
+      }
+      lines.push("");
+      lines.push("FINDINGS");
+      if (!data.findings.length) lines.push("No findings recorded.");
+      data.findings.forEach(function (f, idx) {
+        lines.push((idx + 1) + ". " + f.text);
+        lines.push("   Section: " + f.section + " | Risk: " + f.risk);
+      });
+      lines.push("");
+      lines.push("CORRECTIVE ACTIONS");
+      if (!data.actions.length) lines.push("No corrective actions recorded.");
+      data.actions.forEach(function (a, idx) {
+        lines.push((idx + 1) + ". " + (a.finding || "Not entered"));
+        lines.push("   Risk: " + (a.risk || "Medium") + " | Status: " + (a.status || "Open"));
+        lines.push("   Owner: " + (a.owner || "Unassigned") + " | Due: " + (a.due || "No date"));
+        if (a.moduleTitle) lines.push("   Section: " + a.moduleTitle);
+      });
+      lines.push("");
+      divider();
+      lines.push("This tool is for general workplace safety inspection support. It does not replace legal compliance assessment, competent professional judgment, or employer-specific procedures.");
+      window.location.href = "mailto:?subject=" + encodeURIComponent("Safety Snapshot Report - " + (i.site || i.date || "Inspection")) + "&body=" + encodeURIComponent(lines.join("\r\n"));
+      showToast("Email summary prepared");
+    }
+
+    function buildDocxXml() {
+      var data = reportData();
+      var i = data.inspection;
+      var bracket = complianceBracket(data.stats.score);
+      var body = "";
+      function rPr(options) {
+        options = options || {};
+        var out = "";
+        if (options.bold) out += "<w:b/>";
+        if (options.color) out += '<w:color w:val="' + options.color + '"/>';
+        if (options.size) out += '<w:sz w:val="' + options.size + '"/>';
+        return out ? "<w:rPr>" + out + "</w:rPr>" : "";
+      }
+      function pPr(options) {
+        options = options || {};
+        var out = "";
+        if (options.style) out += '<w:pStyle w:val="' + options.style + '"/>';
+        if (options.align) out += '<w:jc w:val="' + options.align + '"/>';
+        if (options.after || options.before) out += '<w:spacing w:before="' + (options.before || "0") + '" w:after="' + (options.after || "120") + '"/>';
+        return out ? "<w:pPr>" + out + "</w:pPr>" : "";
+      }
+      function p(text, options) {
+        options = options || {};
+        body += "<w:p>" + pPr(options) + "<w:r>" + rPr(options) + '<w:t xml:space="preserve">' + escapeXml(text) + "</w:t></w:r></w:p>";
+      }
+      function sectionTitle(text) {
+        p(text, { bold: true, size: "28", color: "26384A", before: "260", after: "100" });
+      }
+      function cell(text, header) {
+        var cellData = typeof text === "object" && text !== null ? text : { text: text };
+        var value = cellData.text === undefined || cellData.text === null ? "" : cellData.text;
+        var shade = header ? '<w:shd w:fill="EEF2F5"/>' : "";
+        if (cellData.fill) shade = '<w:shd w:fill="' + cellData.fill + '"/>';
+        var bold = header || cellData.bold ? "<w:b/>" : "";
+        var color = cellData.color ? '<w:color w:val="' + cellData.color + '"/>' : "";
+        return '<w:tc><w:tcPr><w:tcMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tcMar>' + shade + '</w:tcPr><w:p><w:r><w:rPr>' + bold + color + '</w:rPr><w:t xml:space="preserve">' + escapeXml(value) + "</w:t></w:r></w:p></w:tc>";
+      }
+      function row(cells, header) {
+        var out = '<w:tr>';
+        cells.forEach(function (c) { out += cell(c, header); });
+        out += '</w:tr>';
+        return out;
+      }
+      function table(rows, hasHeader) {
+        body += '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="C9D1D8"/><w:left w:val="single" w:sz="4" w:color="C9D1D8"/><w:bottom w:val="single" w:sz="4" w:color="C9D1D8"/><w:right w:val="single" w:sz="4" w:color="C9D1D8"/><w:insideH w:val="single" w:sz="4" w:color="DFE4E8"/><w:insideV w:val="single" w:sz="4" w:color="DFE4E8"/></w:tblBorders><w:tblCellMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr>' + rows.map(function (cells, index) { return row(cells, hasHeader && index === 0); }).join("") + "</w:tbl>";
+        p("", { after: "80" });
+      }
+      p("Safety Snapshot Report", { bold: true, size: "40", color: "172026", after: "80" });
+      p("Generated " + formatDateDisplay(todayIso()) + " | Safety Snapshot", { color: "66717A", size: "20", after: "180" });
+      table([
+        ["Business Unit / Company", i.business || "Not entered", "Site / Area", i.site || "Not entered"],
+        ["Location Type", i.locationType || "Not entered", "Inspection date", i.date || "Not entered"],
+        ["Inspector", i.inspector || "Not entered", "Department", i.department || "Not entered"]
+      ]);
+      p(executiveSentence(data), { bold: true, size: "24", color: "26384A", after: "180" });
+      sectionTitle("Summary");
+      table([["Compliance score", "Compliance bracket", "Findings", "Total actions", "Active actions"], [data.stats.score + "%", { text: complianceBracketText(data.stats.score), color: bracket.color, fill: bracket.soft, bold: true }, String(data.findings.length), String(data.stats.totalActions), String(data.stats.activeActions)]], true);
+      sectionTitle("Positive Observations");
+      p(i.positive || "No positive observations recorded.", { after: "140" });
+      if (i.notes) { sectionTitle("Inspection Notes"); p(i.notes, { after: "140" }); }
+      sectionTitle("Findings");
+      if (!data.findings.length) p("No findings recorded.", { after: "140" }); else table([["No.", "Section", "Finding", "Risk"]].concat(data.findings.map(function (f, idx) { return [String(idx + 1), f.section, f.text, f.risk]; })), true);
+      sectionTitle("Corrective Actions");
+      if (!data.actions.length) p("No corrective actions recorded.", { after: "140" }); else {
+        CHECKLISTS.forEach(function (m) {
+          var group = data.actions.filter(function (a) { return a.moduleId === m.id; });
+          if (!group.length) return;
+          p(m.title, { bold: true, size: "24", color: "4D6378", before: "120", after: "80" });
+          table([["No.", "Finding", "Risk", "Owner", "Due date", "Status"]].concat(group.map(function (a, idx) { return [String(idx + 1), a.finding || "Not entered", a.risk || "Medium", a.owner || "Unassigned", a.due || "No date", a.status || "Open"]; })), true);
+        });
+        var manual = data.actions.filter(function (a) { return !a.moduleId; });
+        if (manual.length) {
+          p("Manual Actions", { bold: true, size: "24", color: "4D6378", before: "120", after: "80" });
+          table([["No.", "Finding", "Risk", "Owner", "Due date", "Status"]].concat(manual.map(function (a, idx) { return [String(idx + 1), a.finding || "Not entered", a.risk || "Medium", a.owner || "Unassigned", a.due || "No date", a.status || "Open"]; })), true);
+        }
+      }
+      if (data.nas.length) {
+        sectionTitle("N/A Answers");
+        table([["Section", "Question"]].concat(data.nas.map(function (n) { return [n.section, n.text]; })), true);
+      }
+      sectionTitle("Checklist Summary");
+      if (!data.checklists.length) p("No checklists were used.", { after: "140" }); else {
+        table([["Checklist", "Purpose", "Progress", "Score", "Findings", "N/A", "Active actions"]].concat(data.checklists.map(function (m) {
+          var moduleBracket = complianceBracket(m.score);
+          return [m.title, m.description, m.answered + "/" + m.total, { text: m.score + "% - " + complianceBracketText(m.score), color: moduleBracket.color, fill: moduleBracket.soft, bold: true }, String(m.no), String(m.na), String(m.activeActions)];
+        })), true);
+      }
+      p("This tool is for general workplace safety inspection support. It does not replace legal compliance assessment, competent professional judgment, or employer-specific procedures.", { color: "66717A", size: "18", before: "220", after: "0" });
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' + body + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="900" w:right="900" w:bottom="900" w:left="900"/></w:sectPr></w:body></w:document>';
+    }
+    function crc32(bytes) {
+      var table = crc32.table || (crc32.table = (function () {
+        var c, table = [];
+        for (var n = 0; n < 256; n++) {
+          c = n;
+          for (var k = 0; k < 8; k++) c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+          table[n] = c >>> 0;
+        }
+        return table;
+      })());
+      var crc = 0 ^ -1;
+      for (var i = 0; i < bytes.length; i++) crc = (crc >>> 8) ^ table[(crc ^ bytes[i]) & 0xFF];
+      return (crc ^ -1) >>> 0;
+    }
+    function u16(value) { var b = new Uint8Array(2); new DataView(b.buffer).setUint16(0, value, true); return b; }
+    function u32(value) { var b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, value, true); return b; }
+    function concatArrays(arrays) {
+      var total = arrays.reduce(function (sum, a) { return sum + a.length; }, 0);
+      var out = new Uint8Array(total);
+      var offset = 0;
+      arrays.forEach(function (a) { out.set(a, offset); offset += a.length; });
+      return out;
+    }
+    function createZip(files) {
+      var encoder = new TextEncoder();
+      var locals = [], centrals = [], offset = 0;
+      files.forEach(function (file) {
+        var name = encoder.encode(file.name);
+        var data = encoder.encode(file.content);
+        var crc = crc32(data);
+        var local = concatArrays([u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0), u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), name, data]);
+        locals.push(local);
+        var central = concatArrays([u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0), u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), name]);
+        centrals.push(central);
+        offset += local.length;
+      });
+      var centralStart = offset;
+      var centralData = concatArrays(centrals);
+      var end = concatArrays([u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(centralData.length), u32(centralStart), u16(0)]);
+      return concatArrays(locals.concat([centralData, end]));
+    }
+    function exportDocxReport() {
+      if (!proceedWithBlankFieldWarning("exporting")) return;
+      var files = [
+        { name: "[Content_Types].xml", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>' },
+        { name: "_rels/.rels", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>' },
+        { name: "word/document.xml", content: buildDocxXml() }
+      ];
+      var zip = createZip(files);
+      var blob = new Blob([zip], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      var inspection = current();
+      var filename = "safety-snapshot-report-" + (inspection.date || todayIso()) + ".docx";
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast("DOCX report exported");
+    }
+
+    loadStore();
+    bindFieldEvents();
+    render();
+  </script>
+</body>
+</html>
+
