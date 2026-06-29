@@ -479,6 +479,75 @@
       background: var(--panel-soft);
     }
 
+
+
+    .photo-section {
+      border: 1px dashed var(--strong-line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: var(--panel-soft);
+      display: grid;
+      gap: 12px;
+    }
+    .photo-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .photo-head strong { font-size: 14px; line-height: 1.35; }
+    .photo-head span { color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .photo-input { display: none; }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .photo-card {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--panel);
+      min-width: 0;
+    }
+    .photo-card a { display: block; color: inherit; text-decoration: none; }
+    .photo-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      background: var(--button-soft);
+    }
+    .photo-meta {
+      padding: 8px 9px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .photo-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.62);
+      color: #fff;
+      font-size: 20px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .action-photos { display: grid; gap: 8px; }
+    .action-photos .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -542,6 +611,7 @@
       .desktop-inline { display: inline-flex; }
       .mobile-inline { display: none; }
       .action-meta { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .footer-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
 
@@ -553,7 +623,7 @@
     }
 
     @media print {
-      aside, .mobile-header, .btn, .toast, .modal-backdrop, .saved-panel, .footer-actions { display: none !important; }
+      aside, .mobile-header, .btn, .toast, .modal-backdrop, .saved-panel, .footer-actions, .photo-remove, .photo-input { display: none !important; }
       body { background: #fff; color: #000; }
       main { padding: 0; }
       .panel { box-shadow: none; break-inside: avoid; border-color: #bbb; }
@@ -631,6 +701,18 @@
           <p class="muted small" id="locationNote" style="display:none"></p>
           <label>Positive observations<textarea id="positive" placeholder="Record good practices, visible improvements, or safe behaviours observed."></textarea></label>
           <label>Inspection notes<textarea id="notes" placeholder="Optional notes, context, access limitations, or follow-up comments."></textarea></label>
+          <div class="photo-section">
+            <div class="photo-head">
+              <div>
+                <strong>Observation photos</strong><br>
+                <span>Use essential photos only. Images are compressed and saved on this device with the inspection.</span>
+              </div>
+              <label class="btn small-btn secondary" for="inspectionPhotoInput">&#128247; Add photo</label>
+              <input class="photo-input" id="inspectionPhotoInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoInput(event, 'inspection')">
+            </div>
+            <p class="muted small" id="inspectionPhotoHint"></p>
+            <div class="photo-grid" id="inspectionPhotos"></div>
+          </div>
         </div>
       </section>
 
@@ -744,6 +826,9 @@
   <script>
     var STORAGE_KEY = "safety-snapshot-v1";
     var THEME_KEY = "safety-snapshot-theme-mode";
+    var MAX_PHOTOS_PER_ITEM = 3;
+    var MAX_IMAGE_SIDE = 1200;
+    var IMAGE_QUALITY = 0.72;
     var CHECKLISTS = [
       { id: "housekeeping", title: "Housekeeping", description: "Checks cleanliness, storage, waste control, and general order.", questions: [
         { id: "housekeeping_1", text: "Are work areas clean and free from loose waste?", risk: "Medium", action: "Clean the affected work area and remove loose waste." },
@@ -950,6 +1035,7 @@
         department: "",
         positive: "",
         notes: "",
+        photos: [],
         modules: createModuleState(),
         actions: []
       };
@@ -961,7 +1047,9 @@
         if (!inspection.modules[m.id].answers) inspection.modules[m.id].answers = {};
         if (!inspection.modules[m.id].ignored) inspection.modules[m.id].ignored = {};
       });
+      if (!Array.isArray(inspection.photos)) inspection.photos = [];
       if (!inspection.actions) inspection.actions = [];
+      inspection.actions.forEach(function (action) { if (!Array.isArray(action.photos)) action.photos = []; });
       fields.forEach(function (id) { if (inspection[id] === undefined) inspection[id] = id === "date" ? todayIso() : ""; });
       if (!inspection.name) inspection.name = "Untitled inspection";
       return inspection;
@@ -1007,6 +1095,7 @@
     }
     function saveStore(showMessage) {
       var inspection = current();
+      var saved = canUseStorage;
       updateInspectionName(inspection);
       inspection.updatedAt = new Date().toISOString();
       lastSavedText = "Last saved: " + formatDateTime(new Date().toISOString());
@@ -1015,10 +1104,12 @@
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentId: currentId, inspections: inspections, lastSavedText: lastSavedText }));
         } catch (err) {
           canUseStorage = false;
+          saved = false;
           el("storageWarning").className = "warning show";
         }
       }
-      if (showMessage) showToast("Saved");
+      if (showMessage) showToast(saved ? "Saved" : "Unable to save. Browser storage may be full or blocked.");
+      return saved;
     }
     function autosave() {
       saveStore(false);
@@ -1130,6 +1221,119 @@
       return current().actions.some(function (a) { return a.moduleId === moduleId && a.questionId === questionId; });
     }
 
+    function normalizePhotos(list) {
+      return Array.isArray(list) ? list.filter(function (photo) { return photo && photo.dataUrl; }) : [];
+    }
+    function photoTarget(scope, ownerId) {
+      var inspection = current();
+      if (scope === "inspection") {
+        if (!Array.isArray(inspection.photos)) inspection.photos = [];
+        return inspection.photos;
+      }
+      if (scope === "action") {
+        var action = inspection.actions.find(function (a) { return a.id === ownerId; });
+        if (!action) return null;
+        if (!Array.isArray(action.photos)) action.photos = [];
+        return action.photos;
+      }
+      return null;
+    }
+    function compressedImageFromFile(file) {
+      return new Promise(function (resolve, reject) {
+        if (!file || !file.type || file.type.indexOf("image/") !== 0) {
+          reject(new Error("File is not an image"));
+          return;
+        }
+        var reader = new FileReader();
+        reader.onerror = function () { reject(new Error("Image could not be read")); };
+        reader.onload = function () {
+          var image = new Image();
+          image.onerror = function () { reject(new Error("Image could not be processed")); };
+          image.onload = function () {
+            var width = image.naturalWidth || image.width;
+            var height = image.naturalHeight || image.height;
+            var scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(width, height));
+            var targetWidth = Math.max(1, Math.round(width * scale));
+            var targetHeight = Math.max(1, Math.round(height * scale));
+            var canvas = document.createElement("canvas");
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            var context = canvas.getContext("2d");
+            context.drawImage(image, 0, 0, targetWidth, targetHeight);
+            var dataUrl = canvas.toDataURL("image/jpeg", IMAGE_QUALITY);
+            resolve({
+              id: uid("photo"),
+              name: file.name || "Observation photo",
+              dataUrl: dataUrl,
+              width: targetWidth,
+              height: targetHeight,
+              createdAt: new Date().toISOString()
+            });
+          };
+          image.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    async function handlePhotoInput(event, scope, ownerId) {
+      clearUndo();
+      var input = event.target;
+      var files = Array.prototype.slice.call(input.files || []);
+      input.value = "";
+      if (!files.length) return;
+      var target = photoTarget(scope, ownerId);
+      if (!target) { showToast("Photo target not found"); return; }
+      var remaining = MAX_PHOTOS_PER_ITEM - target.length;
+      if (remaining <= 0) { showToast("Photo limit reached"); return; }
+      var added = 0;
+      for (var i = 0; i < files.length && added < remaining; i++) {
+        try {
+          var photo = await compressedImageFromFile(files[i]);
+          target.push(photo);
+          added += 1;
+        } catch (err) {
+          showToast(err.message || "Photo could not be added");
+        }
+      }
+      var saved = saveStore(false);
+      render();
+      if (added && saved) showToast(added + " photo" + (added > 1 ? "s" : "") + " added");
+      if (added && !saved) showToast("Photo added, but browser storage is full or blocked");
+      if (files.length > added) showToast("Photo limit is " + MAX_PHOTOS_PER_ITEM + " per item");
+    }
+    function removePhoto(scope, ownerId, photoId) {
+      clearUndo();
+      var target = photoTarget(scope, ownerId);
+      if (!target) return;
+      var index = target.findIndex(function (photo) { return photo.id === photoId; });
+      if (index < 0) return;
+      target.splice(index, 1);
+      autosave();
+      showToast("Photo removed");
+    }
+    function photoCard(photo, scope, ownerId, index) {
+      var removeCall = scope === "inspection" ? "removePhoto('inspection', '', '" + photo.id + "')" : "removePhoto('action', '" + ownerId + "', '" + photo.id + "')";
+      return '<div class="photo-card"><button class="photo-remove" type="button" aria-label="Remove photo" onclick="' + removeCall + '">&times;</button><a href="' + photo.dataUrl + '" target="_blank" rel="noopener noreferrer"><img src="' + photo.dataUrl + '" alt="Observation photo ' + (index + 1) + '"><div class="photo-meta"><span>Photo ' + (index + 1) + '</span><span>' + escapeHtml(formatDateDisplay((photo.createdAt || '').slice(0, 10))) + '</span></div></a></div>';
+    }
+    function renderPhotoGrid(photos, scope, ownerId) {
+      photos = normalizePhotos(photos);
+      if (!photos.length) return '<div class="empty">No photos added.</div>';
+      return photos.map(function (photo, index) { return photoCard(photo, scope, ownerId || "", index); }).join("");
+    }
+    function renderInspectionPhotos() {
+      var inspection = current();
+      var photos = normalizePhotos(inspection.photos);
+      if (el("inspectionPhotoHint")) el("inspectionPhotoHint").textContent = photos.length + "/" + MAX_PHOTOS_PER_ITEM + " photos added. Tap Add photo to open the camera where supported. Repeat to add more evidence photos.";
+      if (el("inspectionPhotos")) el("inspectionPhotos").innerHTML = renderPhotoGrid(photos, "inspection", "");
+    }
+    function countPhotos(data) {
+      data = data || reportData();
+      var general = normalizePhotos(data.inspection.photos).length;
+      var actionPhotos = 0;
+      data.actions.forEach(function (a) { actionPhotos += normalizePhotos(a.photos).length; });
+      return { general: general, actions: actionPhotos, total: general + actionPhotos };
+    }
+
     function renderSummary() {
       var stats = computeStats();
       var bracket = complianceBracket(stats.score);
@@ -1234,13 +1438,17 @@
     }
     function actionCard(a) {
       var closed = a.status === "Closed" ? " closed" : "";
+      if (!Array.isArray(a.photos)) a.photos = [];
       var linked = a.questionText ? '<div>Checklist question: <strong>' + escapeHtml(a.questionText) + '</strong></div>' : "";
-      return '<div class="action' + closed + '"><header><strong>' + escapeHtml(a.finding || "Not entered") + '</strong><span class="badge ' + riskClass(a.risk) + '">' + escapeHtml(a.risk || "Medium") + '</span></header><div class="action-meta">' + linked + '<div>Status: <strong>' + escapeHtml(a.status || "Open") + '</strong></div><div>Owner: <strong>' + escapeHtml(a.owner || "Unassigned") + '</strong></div><div>Due: <strong>' + escapeHtml(a.due || "No date") + '</strong></div></div><div class="action-buttons"><button class="btn small-btn secondary" type="button" onclick="openEditModal(\'' + a.id + '\')">Edit</button><button class="btn small-btn danger" type="button" onclick="deleteAction(\'' + a.id + '\')">Delete</button></div></div>';
+      var photoButton = a.photos.length < MAX_PHOTOS_PER_ITEM ? '<label class="btn small-btn secondary" for="photo_' + a.id + '">&#128247; Add photo</label><input class="photo-input" id="photo_' + a.id + '" type="file" accept="image/*" capture="environment" onchange="handlePhotoInput(event, \'action\', \'' + a.id + '\')">' : '<span class="badge neutral">Photo limit reached</span>';
+      var photos = '<div class="action-photos"><div class="photo-head"><div><strong>Photo evidence</strong><br><span>' + a.photos.length + '/' + MAX_PHOTOS_PER_ITEM + ' photos attached to this action.</span></div></div><div class="photo-grid">' + renderPhotoGrid(a.photos, "action", a.id) + '</div></div>';
+      return '<div class="action' + closed + '"><header><strong>' + escapeHtml(a.finding || "Not entered") + '</strong><span class="badge ' + riskClass(a.risk) + '">' + escapeHtml(a.risk || "Medium") + '</span></header><div class="action-meta">' + linked + '<div>Status: <strong>' + escapeHtml(a.status || "Open") + '</strong></div><div>Owner: <strong>' + escapeHtml(a.owner || "Unassigned") + '</strong></div><div>Due: <strong>' + escapeHtml(a.due || "No date") + '</strong></div></div><div class="action-buttons"><button class="btn small-btn secondary" type="button" onclick="openEditModal(\'' + a.id + '\')">Edit</button>' + photoButton + '<button class="btn small-btn danger" type="button" onclick="deleteAction(\'' + a.id + '\')">Delete</button></div>' + photos + '</div>';
     }
     function render() {
       renderFields();
       renderSummary();
       renderSavedList();
+      renderInspectionPhotos();
       renderModules();
       renderActions();
     }
@@ -1313,7 +1521,7 @@
       var due = dueField ? dueField.value : dueDateForRisk(risk);
       var owner = ownerField ? ownerField.value : "";
       current().actions.push({
-        id: uid("action"), finding: q.action, risk: risk, owner: owner, due: due, status: "Open",
+        id: uid("action"), finding: q.action, risk: risk, owner: owner, due: due, status: "Open", photos: [],
         moduleId: moduleId, moduleTitle: m.title, questionId: questionId, questionText: q.text
       });
       delete suggestionExpanded[questionId];
@@ -1324,7 +1532,7 @@
       clearUndo();
       var finding = el("manualFinding").value.trim();
       if (!finding) { showToast("Add a finding first"); return; }
-      current().actions.push({ id: uid("action"), finding: finding, risk: el("manualRisk").value, owner: el("manualOwner").value, due: el("manualDue").value, status: "Open" });
+      current().actions.push({ id: uid("action"), finding: finding, risk: el("manualRisk").value, owner: el("manualOwner").value, due: el("manualDue").value, status: "Open", photos: [] });
       el("manualFinding").value = "";
       el("manualRisk").value = "Medium";
       el("manualOwner").value = "";
@@ -1451,12 +1659,74 @@
     function executiveSentence(data) {
       return "Inspection completed with " + data.stats.score + "% compliance (" + complianceBracketText(data.stats.score) + "), " + data.findings.length + " findings, and " + data.stats.activeActions + " active corrective actions.";
     }
+    function photoReportGrid(photos, prefix, sizeMode) {
+      photos = normalizePhotos(photos);
+      if (!photos.length) return "";
+      return photoReportGridItems(photos.map(function (photo, index) {
+        return { photo: photo, caption: prefix + " photo " + (index + 1) };
+      }), sizeMode || "compact");
+    }
+    function photoReportGridItems(items, sizeMode) {
+      items = Array.isArray(items) ? items.filter(function (item) { return item && item.photo && item.photo.dataUrl; }) : [];
+      if (!items.length) return "";
+      var mode = sizeMode === "appendix" ? "appendix" : "compact";
+      var html = '<div class="photo-report-grid ' + mode + '">';
+      items.forEach(function (item, index) {
+        var caption = item.caption || ("Photo " + (index + 1));
+        html += '<div class="photo-report-card"><img src="' + item.photo.dataUrl + '" alt="' + escapeHtml(caption) + '"><span>' + escapeHtml(caption) + '</span></div>';
+      });
+      html += '</div>';
+      return html;
+    }
+    function actionPhotoItems(actions, actionOffset) {
+      var items = [];
+      actions.forEach(function (a, idx) {
+        normalizePhotos(a.photos).forEach(function (photo, photoIndex) {
+          items.push({ photo: photo, caption: "Action " + ((actionOffset || 0) + idx + 1) + " photo " + (photoIndex + 1) });
+        });
+      });
+      return items;
+    }
+    function buildPhotoAppendix(data) {
+      var hasPhotos = normalizePhotos(data.inspection.photos).length || data.actions.some(function (a) { return normalizePhotos(a.photos).length; });
+      if (!hasPhotos) return "";
+      var html = '<div class="photo-appendix"><h2>Photo Evidence Appendix</h2>';
+      if (normalizePhotos(data.inspection.photos).length) {
+        html += '<h3>General observation photos</h3>' + photoReportGrid(data.inspection.photos, "Observation", "appendix");
+      }
+      CHECKLISTS.forEach(function (m) {
+        var group = data.actions.filter(function (a) { return a.moduleId === m.id && normalizePhotos(a.photos).length; });
+        if (!group.length) return;
+        var items = [];
+        group.forEach(function (a) {
+          var actionNo = data.actions.indexOf(a) + 1;
+          normalizePhotos(a.photos).forEach(function (photo, photoIndex) {
+            items.push({ photo: photo, caption: "Action " + actionNo + " photo " + (photoIndex + 1) });
+          });
+        });
+        html += '<h3>' + escapeHtml(m.title) + '</h3>' + photoReportGridItems(items, "appendix");
+      });
+      var manual = data.actions.filter(function (a) { return !a.moduleId && normalizePhotos(a.photos).length; });
+      if (manual.length) {
+        var manualItems = [];
+        manual.forEach(function (a) {
+          var actionNo = data.actions.indexOf(a) + 1;
+          normalizePhotos(a.photos).forEach(function (photo, photoIndex) {
+            manualItems.push({ photo: photo, caption: "Manual action " + actionNo + " photo " + (photoIndex + 1) });
+          });
+        });
+        html += '<h3>Manual action photos</h3>' + photoReportGridItems(manualItems, "appendix");
+      }
+      html += '</div>';
+      return html;
+    }
+
     function buildReportHtml() {
       var data = reportData();
       var i = data.inspection;
       var bracket = complianceBracket(data.stats.score);
       var bracketText = complianceBracketText(data.stats.score);
-      var html = '<!doctype html><html><head><meta charset="utf-8"><title>Safety Snapshot Report</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#172026;line-height:1.45;margin:0;font-size:12px}.report-head{border-bottom:3px solid #26384a;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;gap:20px;align-items:flex-end}.brand h1{font-size:28px;line-height:1.1;margin:0;color:#172026}.brand p{margin:6px 0 0;color:#66717a}.score-box{text-align:right;border:1px solid #c9d1d8;background:#f6f7f8;padding:10px 14px;min-width:130px}.score-box strong{display:block;font-size:30px;line-height:1}.score-box span{display:block;margin-top:4px;font-size:11px}.score-box.compliance-urgent,.metric.compliance-urgent{border-color:#a84a4a;background:#faeaea;color:#a84a4a}.score-box.compliance-needs,.metric.compliance-needs{border-color:#9a6b22;background:#fff3dc;color:#9a6b22}.score-box.compliance-mostly,.metric.compliance-mostly{border-color:#486f9c;background:#e9f1fb;color:#486f9c}.score-box.compliance-strong,.metric.compliance-strong{border-color:#3f7b61;background:#e9f4ef;color:#3f7b61}.summary-line{font-size:14px;font-weight:700;color:#26384a;background:#eef2f5;border-left:4px solid #26384a;padding:10px 12px;margin:12px 0 14px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 16px}.metric{border:1px solid #dfe4e8;background:#f9fafb;padding:9px}.metric strong{display:block;font-size:20px}.metric span{display:block;font-size:11px;margin-top:2px}h2{font-size:16px;margin:20px 0 8px;color:#26384a;border-bottom:1px solid #c9d1d8;padding-bottom:5px}h3{font-size:13px;margin:14px 0 6px;color:#4d6378}.meta{width:100%;border-collapse:collapse;margin:8px 0 12px}.meta th{width:20%;background:#eef2f5;color:#172026}.meta td{width:30%}table{width:100%;border-collapse:collapse;margin:8px 0 14px;page-break-inside:auto}tr{page-break-inside:avoid;page-break-after:auto}th,td{border:1px solid #dfe4e8;padding:7px 8px;text-align:left;vertical-align:top}th{background:#eef2f5;color:#172026;font-weight:700}.section{page-break-inside:avoid}.note{white-space:pre-wrap;margin:0 0 10px}.risk-high{color:#a84a4a;font-weight:700}.risk-medium{color:#9a6b22;font-weight:700}.risk-low{color:#3f7b61;font-weight:700}.closed{color:#777;background:#f6f7f8}.footer{margin-top:24px;font-size:10px;color:#66717a;border-top:1px solid #dfe4e8;padding-top:8px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.report-head,.section{break-inside:avoid}}</style></head><body>';
+      var html = '<!doctype html><html><head><meta charset="utf-8"><title>Safety Snapshot Report</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#172026;line-height:1.45;margin:0;font-size:12px}.report-head{border-bottom:3px solid #26384a;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;gap:20px;align-items:flex-end}.brand h1{font-size:28px;line-height:1.1;margin:0;color:#172026}.brand p{margin:6px 0 0;color:#66717a}.score-box{text-align:right;border:1px solid #c9d1d8;background:#f6f7f8;padding:10px 14px;min-width:130px}.score-box strong{display:block;font-size:30px;line-height:1}.score-box span{display:block;margin-top:4px;font-size:11px}.score-box.compliance-urgent,.metric.compliance-urgent{border-color:#a84a4a;background:#faeaea;color:#a84a4a}.score-box.compliance-needs,.metric.compliance-needs{border-color:#9a6b22;background:#fff3dc;color:#9a6b22}.score-box.compliance-mostly,.metric.compliance-mostly{border-color:#486f9c;background:#e9f1fb;color:#486f9c}.score-box.compliance-strong,.metric.compliance-strong{border-color:#3f7b61;background:#e9f4ef;color:#3f7b61}.summary-line{font-size:14px;font-weight:700;color:#26384a;background:#eef2f5;border-left:4px solid #26384a;padding:10px 12px;margin:12px 0 14px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 16px}.metric{border:1px solid #dfe4e8;background:#f9fafb;padding:9px}.metric strong{display:block;font-size:20px}.metric span{display:block;font-size:11px;margin-top:2px}h2{font-size:16px;margin:20px 0 8px;color:#26384a;border-bottom:1px solid #c9d1d8;padding-bottom:5px}h3{font-size:13px;margin:14px 0 6px;color:#4d6378}.meta{width:100%;border-collapse:collapse;margin:8px 0 12px}.meta th{width:20%;background:#eef2f5;color:#172026}.meta td{width:30%}table{width:100%;border-collapse:collapse;margin:8px 0 14px;page-break-inside:auto}tr{page-break-inside:avoid;page-break-after:auto}th,td{border:1px solid #dfe4e8;padding:7px 8px;text-align:left;vertical-align:top}th{background:#eef2f5;color:#172026;font-weight:700}.section{page-break-inside:avoid}.note{white-space:pre-wrap;margin:0 0 10px}.risk-high{color:#a84a4a;font-weight:700}.risk-medium{color:#9a6b22;font-weight:700}.risk-low{color:#3f7b61;font-weight:700}.closed{color:#777;background:#f6f7f8}.photo-report-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0 14px}.photo-report-card{border:1px solid #dfe4e8;padding:6px;page-break-inside:avoid;break-inside:avoid;background:#fff}.photo-report-card img{display:block;width:100%;object-fit:contain;background:#fff}.photo-report-card span{display:block;margin-top:5px;font-size:10px;color:#66717a;font-weight:700}.photo-report-grid.compact{gap:6px;margin:6px 0 12px}.photo-report-grid.compact .photo-report-card{padding:5px}.photo-report-grid.compact .photo-report-card img{height:92px}.photo-report-grid.appendix{gap:12px;margin:8px 0 18px}.photo-report-grid.appendix .photo-report-card{padding:8px}.photo-report-grid.appendix .photo-report-card img{height:255px}.action-photo-block{page-break-inside:avoid;break-inside:avoid;margin:8px 0 14px}.action-photo-block>strong{display:block;margin:0 0 6px}.photo-appendix{page-break-before:always;break-before:page}.photo-appendix h2{margin-top:0}.footer{margin-top:24px;font-size:10px;color:#66717a;border-top:1px solid #dfe4e8;padding-top:8px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.report-head,.section,.photo-report-card,.action-photo-block{break-inside:avoid}}</style></head><body>';
       html += '<div class="report-head"><div class="brand"><h1>Safety Snapshot Report</h1><p>Generated ' + escapeHtml(formatDateDisplay(todayIso())) + ' | ' + escapeHtml(i.site || "Inspection summary") + '</p></div><div class="score-box ' + bracket.className + '"><strong>' + data.stats.score + '%</strong><span>' + escapeHtml(bracketText) + '</span></div></div>';
       html += '<table class="meta"><tr><th>Business Unit / Company</th><td>' + escapeHtml(i.business || "Not entered") + '</td><th>Site / Area</th><td>' + escapeHtml(i.site || "Not entered") + '</td></tr>';
       html += '<tr><th>Location Type</th><td>' + escapeHtml(i.locationType || "Not entered") + '</td><th>Inspection date</th><td>' + escapeHtml(i.date || "Not entered") + '</td></tr>';
@@ -1465,6 +1735,7 @@
       html += '<div class="metrics"><div class="metric ' + bracket.className + '"><strong>' + data.stats.score + '%</strong><span>' + escapeHtml(bracketText) + '</span></div><div class="metric"><strong>' + data.findings.length + '</strong><span>Findings</span></div><div class="metric"><strong>' + data.stats.totalActions + '</strong><span>Total actions</span></div><div class="metric"><strong>' + data.stats.activeActions + '</strong><span>Active actions</span></div></div>';
       html += '<div class="section"><h2>Positive Observations</h2><p class="note">' + escapeHtml(i.positive || "No positive observations recorded.") + '</p></div>';
       if (i.notes) html += '<div class="section"><h2>Inspection Notes</h2><p class="note">' + escapeHtml(i.notes) + '</p></div>';
+      if (normalizePhotos(i.photos).length) html += '<div class="section"><h2>Observation Photo Evidence Summary</h2>' + photoReportGrid(i.photos, "Observation", "compact") + '</div>';
       html += '<h2>Findings</h2>';
       if (!data.findings.length) html += '<p>No findings recorded.</p>'; else {
         html += '<table><tr><th>No.</th><th>Section</th><th>Finding</th><th>Risk</th></tr>';
@@ -1495,18 +1766,57 @@
         });
         html += '</table>';
       }
+      html += buildPhotoAppendix(data);
       html += '<p class="footer">This tool is for general workplace safety inspection support. It does not replace legal compliance assessment, competent professional judgment, or employer-specific procedures.</p>';
       html += '</body></html>';
       return html;
     }
     function actionReportTable(actions) {
       var html = '<table><tr><th>No.</th><th>Finding</th><th>Risk</th><th>Owner</th><th>Due date</th><th>Status</th></tr>';
+      var photoItems = [];
       actions.forEach(function (a, idx) {
         var cls = a.status === "Closed" ? ' class="closed"' : "";
         html += '<tr' + cls + '><td>' + (idx + 1) + '</td><td>' + escapeHtml(a.finding || "Not entered") + '</td><td class="risk-' + riskClass(a.risk) + '">' + escapeHtml(a.risk || "Medium") + '</td><td>' + escapeHtml(a.owner || "Unassigned") + '</td><td>' + escapeHtml(a.due || "No date") + '</td><td>' + escapeHtml(a.status || "Open") + '</td></tr>';
+        normalizePhotos(a.photos).forEach(function (photo, photoIndex) {
+          photoItems.push({ photo: photo, caption: "Action " + (idx + 1) + " photo " + (photoIndex + 1) });
+        });
       });
       html += '</table>';
+      if (photoItems.length) {
+        html += '<div class="action-photo-block"><strong>Photo evidence summary</strong>' + photoReportGridItems(photoItems, "compact") + '</div>';
+      }
       return html;
+    }
+    function waitForReportImages(reportWindow, callback) {
+      var images = Array.prototype.slice.call(reportWindow.document.images || []);
+      if (!images.length) {
+        reportWindow.setTimeout(callback, 150);
+        return;
+      }
+      var remaining = images.length;
+      var finished = false;
+      function doneOne() {
+        if (finished) return;
+        remaining -= 1;
+        if (remaining <= 0) {
+          finished = true;
+          reportWindow.setTimeout(callback, 200);
+        }
+      }
+      images.forEach(function (img) {
+        if (img.complete) {
+          doneOne();
+        } else {
+          img.onload = doneOne;
+          img.onerror = doneOne;
+        }
+      });
+      reportWindow.setTimeout(function () {
+        if (!finished) {
+          finished = true;
+          callback();
+        }
+      }, 3000);
     }
     function printReport() {
       if (!proceedWithBlankFieldWarning("printing")) return;
@@ -1515,8 +1825,12 @@
       win.document.open();
       win.document.write(buildReportHtml());
       win.document.close();
-      win.focus();
-      win.print();
+      win.setTimeout(function () {
+        waitForReportImages(win, function () {
+          win.focus();
+          win.print();
+        });
+      }, 150);
     }
     function emailReport() {
       if (!proceedWithBlankFieldWarning("emailing")) return;
@@ -1543,6 +1857,8 @@
       lines.push("Findings: " + data.findings.length);
       lines.push("Total corrective actions: " + data.stats.totalActions);
       lines.push("Active corrective actions: " + data.stats.activeActions);
+      var photoCounts = countPhotos(data);
+      lines.push("Photo evidence: " + photoCounts.total + " photo(s) saved in the app. Mailto email cannot attach photos automatically; use Print / PDF or DOCX for photo evidence.");
       lines.push("");
       lines.push(executiveSentence(data));
       lines.push("");
@@ -1576,11 +1892,42 @@
       showToast("Email summary prepared");
     }
 
-    function buildDocxXml() {
-      var data = reportData();
+    function dataUrlToBytes(dataUrl) {
+      var parts = String(dataUrl || "").split(",");
+      var base64 = parts.length > 1 ? parts[1] : "";
+      var binary = atob(base64);
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+    function collectDocxImages(data) {
+      var items = [];
+      normalizePhotos(data.inspection.photos).forEach(function (photo, index) {
+        items.push({ scope: "inspection", ownerId: "", photo: photo, relId: "rIdPhoto" + (items.length + 1), target: "media/photo" + (items.length + 1) + ".jpg", caption: "Observation photo " + (index + 1) });
+      });
+      data.actions.forEach(function (action, actionIndex) {
+        normalizePhotos(action.photos).forEach(function (photo, photoIndex) {
+          items.push({ scope: "action", ownerId: action.id, photo: photo, relId: "rIdPhoto" + (items.length + 1), target: "media/photo" + (items.length + 1) + ".jpg", caption: "Action " + (actionIndex + 1) + " photo " + (photoIndex + 1) });
+        });
+      });
+      return items;
+    }
+    function buildDocumentRelationships(images) {
+      var xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+      images.forEach(function (item) {
+        xml += '<Relationship Id="' + item.relId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + item.target + '"/>';
+      });
+      xml += '</Relationships>';
+      return xml;
+    }
+
+    function buildDocxXml(data, docxImages) {
+      data = data || reportData();
+      docxImages = Array.isArray(docxImages) ? docxImages : [];
       var i = data.inspection;
       var bracket = complianceBracket(data.stats.score);
       var body = "";
+      var drawingId = 1;
       function rPr(options) {
         options = options || {};
         var out = "";
@@ -1600,6 +1947,9 @@
       function p(text, options) {
         options = options || {};
         body += "<w:p>" + pPr(options) + "<w:r>" + rPr(options) + '<w:t xml:space="preserve">' + escapeXml(text) + "</w:t></w:r></w:p>";
+      }
+      function pageBreak() {
+        body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
       }
       function sectionTitle(text) {
         p(text, { bold: true, size: "28", color: "26384A", before: "260", after: "100" });
@@ -1623,6 +1973,78 @@
         body += '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="C9D1D8"/><w:left w:val="single" w:sz="4" w:color="C9D1D8"/><w:bottom w:val="single" w:sz="4" w:color="C9D1D8"/><w:right w:val="single" w:sz="4" w:color="C9D1D8"/><w:insideH w:val="single" w:sz="4" w:color="DFE4E8"/><w:insideV w:val="single" w:sz="4" w:color="DFE4E8"/></w:tblBorders><w:tblCellMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr>' + rows.map(function (cells, index) { return row(cells, hasHeader && index === 0); }).join("") + "</w:tbl>";
         p("", { after: "80" });
       }
+      function imagesFor(scope, ownerId) {
+        return docxImages.filter(function (item) { return item.scope === scope && String(item.ownerId || "") === String(ownerId || ""); });
+      }
+      function imagesForActions(actions) {
+        var items = [];
+        actions.forEach(function (action) {
+          imagesFor("action", action.id).forEach(function (item) { items.push(item); });
+        });
+        return items;
+      }
+      function hasAnyImages() {
+        return docxImages.length > 0;
+      }
+      function imageSize(item, mode) {
+        var width = item.photo.width || 1200;
+        var height = item.photo.height || 900;
+        var maxCx = mode === "appendix" ? 2850000 : 1750000;
+        var maxCy = mode === "appendix" ? 2150000 : 1150000;
+        var cx = maxCx;
+        var cy = Math.round(cx * height / width);
+        if (cy > maxCy) {
+          cy = maxCy;
+          cx = Math.round(cy * width / height);
+        }
+        return { cx: cx, cy: cy };
+      }
+      function imageDrawingXml(item, mode) {
+        var size = imageSize(item, mode);
+        var id = drawingId++;
+        return '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="60"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + size.cx + '" cy="' + size.cy + '"/><wp:docPr id="' + id + '" name="' + escapeXml(item.caption) + '"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="' + id + '" name="' + escapeXml(item.caption) + '.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + item.relId + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + size.cx + '" cy="' + size.cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
+      }
+      function photoCell(item, mode) {
+        if (!item) return '<w:tc><w:tcPr><w:tcW w:w="2500" w:type="pct"/><w:tcMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tcMar></w:tcPr><w:p/></w:tc>';
+        return '<w:tc><w:tcPr><w:tcW w:w="2500" w:type="pct"/><w:tcMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tcMar></w:tcPr>' + imageDrawingXml(item, mode) + '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="80"/></w:pPr><w:r><w:rPr><w:color w:val="66717A"/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">' + escapeXml(item.caption) + '</w:t></w:r></w:p></w:tc>';
+      }
+      function photoTable(items, mode) {
+        items = Array.isArray(items) ? items : [];
+        if (!items.length) return;
+        var rows = [];
+        for (var idx = 0; idx < items.length; idx += 2) {
+          rows.push('<w:tr>' + photoCell(items[idx], mode) + photoCell(items[idx + 1], mode) + '</w:tr>');
+        }
+        body += '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="DFE4E8"/><w:left w:val="single" w:sz="4" w:color="DFE4E8"/><w:bottom w:val="single" w:sz="4" w:color="DFE4E8"/><w:right w:val="single" w:sz="4" w:color="DFE4E8"/><w:insideH w:val="single" w:sz="4" w:color="DFE4E8"/><w:insideV w:val="single" w:sz="4" w:color="DFE4E8"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="5000"/><w:gridCol w:w="5000"/></w:tblGrid>' + rows.join("") + '</w:tbl>';
+        p("", { after: "80" });
+      }
+      function photoGroupTitle(text) {
+        p(text, { bold: true, size: "22", color: "4D6378", before: "120", after: "70" });
+      }
+      function compactPhotoReference(title, items) {
+        if (!items || !items.length) return;
+        photoGroupTitle(title);
+        photoTable(items, "compact");
+      }
+      function appendixPhotoGroup(title, items) {
+        if (!items || !items.length) return;
+        photoGroupTitle(title);
+        photoTable(items, "appendix");
+      }
+      function buildPhotoAppendix() {
+        if (!hasAnyImages()) return;
+        pageBreak();
+        sectionTitle("Photo Evidence Appendix");
+        appendixPhotoGroup("General observation photos", imagesFor("inspection", ""));
+        CHECKLISTS.forEach(function (m) {
+          var group = data.actions.filter(function (a) { return a.moduleId === m.id; });
+          var items = imagesForActions(group);
+          if (items.length) appendixPhotoGroup(m.title, items);
+        });
+        var manual = data.actions.filter(function (a) { return !a.moduleId; });
+        var manualItems = imagesForActions(manual);
+        if (manualItems.length) appendixPhotoGroup("Manual Actions", manualItems);
+      }
       p("Safety Snapshot Report", { bold: true, size: "40", color: "172026", after: "80" });
       p("Generated " + formatDateDisplay(todayIso()) + " | Safety Snapshot", { color: "66717A", size: "20", after: "180" });
       table([
@@ -1636,6 +2058,7 @@
       sectionTitle("Positive Observations");
       p(i.positive || "No positive observations recorded.", { after: "140" });
       if (i.notes) { sectionTitle("Inspection Notes"); p(i.notes, { after: "140" }); }
+      compactPhotoReference("Observation photo references", imagesFor("inspection", ""));
       sectionTitle("Findings");
       if (!data.findings.length) p("No findings recorded.", { after: "140" }); else table([["No.", "Section", "Finding", "Risk"]].concat(data.findings.map(function (f, idx) { return [String(idx + 1), f.section, f.text, f.risk]; })), true);
       sectionTitle("Corrective Actions");
@@ -1645,11 +2068,13 @@
           if (!group.length) return;
           p(m.title, { bold: true, size: "24", color: "4D6378", before: "120", after: "80" });
           table([["No.", "Finding", "Risk", "Owner", "Due date", "Status"]].concat(group.map(function (a, idx) { return [String(idx + 1), a.finding || "Not entered", a.risk || "Medium", a.owner || "Unassigned", a.due || "No date", a.status || "Open"]; })), true);
+          compactPhotoReference("Photo references - " + m.title, imagesForActions(group));
         });
         var manual = data.actions.filter(function (a) { return !a.moduleId; });
         if (manual.length) {
           p("Manual Actions", { bold: true, size: "24", color: "4D6378", before: "120", after: "80" });
           table([["No.", "Finding", "Risk", "Owner", "Due date", "Status"]].concat(manual.map(function (a, idx) { return [String(idx + 1), a.finding || "Not entered", a.risk || "Medium", a.owner || "Unassigned", a.due || "No date", a.status || "Open"]; })), true);
+          compactPhotoReference("Photo references - Manual Actions", imagesForActions(manual));
         }
       }
       if (data.nas.length) {
@@ -1663,8 +2088,9 @@
           return [m.title, m.description, m.answered + "/" + m.total, { text: m.score + "% - " + complianceBracketText(m.score), color: moduleBracket.color, fill: moduleBracket.soft, bold: true }, String(m.no), String(m.na), String(m.activeActions)];
         })), true);
       }
+      buildPhotoAppendix();
       p("This tool is for general workplace safety inspection support. It does not replace legal compliance assessment, competent professional judgment, or employer-specific procedures.", { color: "66717A", size: "18", before: "220", after: "0" });
-      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' + body + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="900" w:right="900" w:bottom="900" w:left="900"/></w:sectPr></w:body></w:document>';
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>' + body + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="900" w:right="900" w:bottom="900" w:left="900"/></w:sectPr></w:body></w:document>';
     }
     function crc32(bytes) {
       var table = crc32.table || (crc32.table = (function () {
@@ -1694,7 +2120,8 @@
       var locals = [], centrals = [], offset = 0;
       files.forEach(function (file) {
         var name = encoder.encode(file.name);
-        var data = encoder.encode(file.content);
+        var data = file.binary ? file.content : encoder.encode(file.content);
+        if (!(data instanceof Uint8Array)) data = new Uint8Array(data);
         var crc = crc32(data);
         var local = concatArrays([u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0), u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), name, data]);
         locals.push(local);
@@ -1709,11 +2136,15 @@
     }
     function exportDocxReport() {
       if (!proceedWithBlankFieldWarning("exporting")) return;
+      var data = reportData();
+      var docxImages = collectDocxImages(data);
       var files = [
-        { name: "[Content_Types].xml", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>' },
+        { name: "[Content_Types].xml", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>' },
         { name: "_rels/.rels", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>' },
-        { name: "word/document.xml", content: buildDocxXml() }
+        { name: "word/_rels/document.xml.rels", content: buildDocumentRelationships(docxImages) },
+        { name: "word/document.xml", content: buildDocxXml(data, docxImages) }
       ];
+      docxImages.forEach(function (item) { files.push({ name: "word/" + item.target, content: dataUrlToBytes(item.photo.dataUrl), binary: true }); });
       var zip = createZip(files);
       var blob = new Blob([zip], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
       var inspection = current();
