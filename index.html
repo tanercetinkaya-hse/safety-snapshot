@@ -612,7 +612,7 @@
       .mobile-inline { display: none; }
       .action-meta { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .footer-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .footer-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
 
     @media (min-width: 980px) {
@@ -655,8 +655,11 @@
       </div>
       <button class="btn secondary theme-toggle" id="themeToggle" type="button" onclick="cycleThemeMode()">Mode: Auto</button>
       <button class="btn" type="button" onclick="newInspection()">&#43; New Inspection</button>
+      <button class="btn danger" type="button" onclick="resetCurrentInspection()">Reset Inspection</button>
       <div class="sidebar-actions">
         <button class="btn secondary" type="button" onclick="exportDocxReport()">&#9635; Export DOCX</button>
+        <button class="btn secondary" type="button" onclick="exportCsvReport()">&#9636; Export Action CSV</button>
+        <button class="btn secondary" type="button" onclick="exportFullCsvReport()">&#9636; Export Full CSV</button>
         <button class="btn secondary" type="button" onclick="emailReport()">&#9993; Email Summary</button>
         <button class="btn secondary" type="button" onclick="printReport()">&#9113; Print / PDF</button>
       </div>
@@ -791,8 +794,11 @@
         </div>
         <div class="panel-body footer-actions">
           <button class="btn secondary" type="button" onclick="exportDocxReport()">&#9635; Export DOCX</button>
+          <button class="btn secondary" type="button" onclick="exportCsvReport()">&#9636; Export Action CSV</button>
+        <button class="btn secondary" type="button" onclick="exportFullCsvReport()">&#9636; Export Full CSV</button>
           <button class="btn secondary" type="button" onclick="emailReport()">&#9993; Email Summary</button>
           <button class="btn secondary" type="button" onclick="printReport()">&#9113; Print / PDF</button>
+          <button class="btn danger" type="button" onclick="resetCurrentInspection()">Reset Inspection</button>
         </div>
       </section>
 
@@ -1637,6 +1643,23 @@
       autosave();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+    function resetCurrentInspection() {
+      clearUndo();
+      if (!confirm("Reset the current inspection? This will clear entered details, checklist answers, corrective actions, and photos for this inspection. Other saved inspections will remain on this device.")) return;
+      var blank = createBlankInspection();
+      var index = inspections.findIndex(function (inspection) { return inspection.id === currentId; });
+      if (index >= 0) {
+        blank.id = currentId;
+        inspections[index] = blank;
+      } else {
+        inspections.push(blank);
+        currentId = blank.id;
+      }
+      suggestionExpanded = {};
+      autosave();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      showToast("Inspection reset");
+    }
     function loadInspection(id) {
       clearUndo();
       if (id === currentId) return;
@@ -1930,6 +1953,184 @@
       lines.push("This tool is for general workplace safety inspection support. It does not replace legal compliance assessment, competent professional judgment, or employer-specific procedures.");
       window.location.href = "mailto:?subject=" + encodeURIComponent("Safety Snapshot Report - " + (i.site || i.date || "Inspection")) + "&body=" + encodeURIComponent(lines.join("\r\n"));
       showToast("Email summary prepared");
+    }
+
+    function csvCell(value) {
+      var text = value === undefined || value === null ? "" : String(value);
+      text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\s*\n\s*/g, " ");
+      if (/^[=+\-@\t]/.test(text)) text = "'" + text;
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+    function csvSafeFilenamePart(value) {
+      return String(value || "inspection").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "inspection";
+    }
+    function downloadTextFile(filename, content, mimeType) {
+      var blob = new Blob([content], { type: mimeType || "text/plain;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+    function exportCsvReport() {
+      if (!proceedWithBlankFieldWarning("exporting action CSV")) return;
+      var data = reportData();
+      var i = data.inspection;
+      var headers = [
+        "Inspection Date",
+        "Business Unit / Company",
+        "Site / Area",
+        "Location Type",
+        "Department",
+        "Checklist Section",
+        "Finding / Action",
+        "Risk",
+        "Owner",
+        "Due Date",
+        "Status",
+        "Source",
+        "Photo Count",
+        "Checklist Score %"
+      ];
+      function actionChecklistScore(action) {
+        if (!action || !action.moduleId) return "N/A";
+        var module = moduleById(action.moduleId);
+        var moduleState = i.modules && i.modules[action.moduleId] ? i.modules[action.moduleId] : null;
+        if (!module || !moduleState || !moduleState.active) return "N/A";
+        return statsForModule(action.moduleId).score + "%";
+      }
+      var rows = [headers];
+      data.actions.forEach(function (a) {
+        rows.push([
+          i.date || "",
+          i.business || "",
+          i.site || "",
+          i.locationType || "",
+          i.department || "",
+          a.moduleTitle || "Manual Action",
+          a.finding || "",
+          a.risk || "Medium",
+          a.owner || "Unassigned",
+          a.due || "No date",
+          a.status || "Open",
+          a.moduleId ? "Checklist" : "Manual",
+          normalizePhotos(a.photos).length,
+          actionChecklistScore(a)
+        ]);
+      });
+      if (!data.actions.length) {
+        rows.push([
+          i.date || "",
+          i.business || "",
+          i.site || "",
+          i.locationType || "",
+          i.department || "",
+          "",
+          "No corrective actions recorded.",
+          "",
+          "",
+          "",
+          "",
+          "None",
+          0,
+          "N/A"
+        ]);
+      }
+      var csv = "\ufeff" + rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
+      var filename = "safety-snapshot-action-register-" + (i.date || todayIso()) + "-" + csvSafeFilenamePart(i.site || i.business || "inspection") + ".csv";
+      downloadTextFile(filename, csv, "text/csv;charset=utf-8");
+      showToast("Action CSV exported");
+    }
+    function exportFullCsvReport() {
+      if (!proceedWithBlankFieldWarning("exporting full CSV")) return;
+      var data = reportData();
+      var i = data.inspection;
+      var headers = [
+        "Inspection Date",
+        "Business Unit / Company",
+        "Site / Area",
+        "Location Type",
+        "Inspector",
+        "Department",
+        "Overall Score %",
+        "Overall Progress %",
+        "Checklist Section",
+        "Checklist Result",
+        "Question / Action",
+        "Answer",
+        "Risk",
+        "Finding Triggered",
+        "Owner",
+        "Due Date",
+        "Status",
+        "Photo Count",
+        "Notes"
+      ];
+      function baseColumns() {
+        return [
+          i.date || "",
+          i.business || "",
+          i.site || "",
+          i.locationType || "",
+          i.inspector || "",
+          i.department || "",
+          data.stats.score + "%",
+          data.stats.progress + "%"
+        ];
+      }
+      function moduleResult(module, moduleState) {
+        if (!moduleState || !moduleState.active) return "Skipped / Not applicable";
+        var moduleStats = statsForModule(module.id);
+        return moduleStats.answered + "/" + moduleStats.total + " - " + moduleStats.score + "%";
+      }
+      function firstLinkedAction(moduleId, questionId) {
+        return data.actions.find(function (a) { return a.moduleId === moduleId && a.questionId === questionId; }) || null;
+      }
+      var rows = [headers];
+      CHECKLISTS.forEach(function (module) {
+        var moduleState = i.modules && i.modules[module.id] ? i.modules[module.id] : { active: false, answers: {} };
+        var result = moduleResult(module, moduleState);
+        module.questions.forEach(function (question) {
+          var answerValue = moduleState.active ? (moduleState.answers[question.id] || "") : "skipped";
+          var answer = moduleState.active ? answerText(answerValue) : "Skipped / Not applicable";
+          var action = firstLinkedAction(module.id, question.id);
+          rows.push(baseColumns().concat([
+            module.title,
+            result,
+            question.text,
+            answer,
+            question.risk,
+            answerValue === "no" ? "Yes" : "No",
+            action ? (action.owner || "Unassigned") : "",
+            action ? (action.due || "No date") : "",
+            action ? (action.status || "Open") : "",
+            action ? normalizePhotos(action.photos).length : "",
+            action ? ("Action: " + (action.finding || "")) : "Suggested action: " + question.action
+          ]));
+        });
+      });
+      data.actions.filter(function (a) { return !a.moduleId; }).forEach(function (action) {
+        rows.push(baseColumns().concat([
+          "Manual Action",
+          "",
+          action.finding || "",
+          "",
+          action.risk || "Medium",
+          "Yes",
+          action.owner || "Unassigned",
+          action.due || "No date",
+          action.status || "Open",
+          normalizePhotos(action.photos).length,
+          "Manual action not linked to a checklist question."
+        ]));
+      });
+      var csv = "\ufeff" + rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
+      var filename = "safety-snapshot-full-" + (i.date || todayIso()) + "-" + csvSafeFilenamePart(i.site || i.business || "inspection") + ".csv";
+      downloadTextFile(filename, csv, "text/csv;charset=utf-8");
+      showToast("Full CSV exported");
     }
 
     function dataUrlToBytes(dataUrl) {
