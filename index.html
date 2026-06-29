@@ -154,15 +154,27 @@
     }
     .brand { display: grid; gap: 6px; }
     .brand-mark {
-      width: 46px;
-      height: 46px;
-      border-radius: 13px;
-      display: grid;
-      place-items: center;
+      width: fit-content;
+      min-height: 44px;
+      border-radius: 12px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       background: var(--button-soft);
       color: var(--accent);
       font-weight: 900;
-      letter-spacing: -.04em;
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 20px rgba(23, 32, 38, .06);
+    }
+    .brand-mark .quote-icon {
+      color: var(--blue);
+      font-size: 22px;
+      line-height: 1;
+    }
+    .brand-mark .quote-text {
+      font-size: 14px;
+      white-space: nowrap;
     }
     .brand h1 { font-size: 23px; letter-spacing: -.03em; }
     .brand p { color: var(--muted); font-size: 13px; line-height: 1.35; }
@@ -182,15 +194,25 @@
     .sidebar-score.compliance-strong { border-color: var(--green); background: var(--green-soft); }
     .sidebar-actions { display: grid; gap: 10px; }
     .theme-toggle { width: 100%; }
-    .credit { margin-top: auto; color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .linkedin-link {
-      color: var(--accent-2);
+    .creator-card {
+      margin-top: auto;
+      border: 1px solid var(--strong-line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--panel-soft);
+      display: grid;
+      gap: 6px;
+    }
+    .creator-card strong { font-size: 13px; line-height: 1.35; }
+    .creator-card a {
+      color: var(--blue);
       font-size: 12px;
       font-weight: 800;
       text-decoration: none;
-      line-height: 1.45;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
     }
-    .linkedin-link:hover { text-decoration: underline; }
+    .creator-card a:hover { text-decoration: underline; }
 
     main { padding: 14px; display: grid; gap: 14px; max-width: 1180px; margin: 0 auto; }
     .panel {
@@ -553,7 +575,7 @@
 
     <aside>
       <div class="brand">
-        <div class="brand-mark">SS</div>
+        <div class="brand-mark"><span class="quote-icon">&#8220;</span><span class="quote-text">Sharing is caring</span></div>
         <h1>Safety Snapshot</h1>
         <p>Quick safety checks for everyday workplaces</p>
       </div>
@@ -568,8 +590,10 @@
         <button class="btn secondary" type="button" onclick="emailReport()">&#9993; Email Summary</button>
         <button class="btn secondary" type="button" onclick="printReport()">&#9113; Print / PDF</button>
       </div>
-      <p class="credit">Designed by Taner Cetinkaya.</p>
-      <a class="linkedin-link" href="https://www.linkedin.com/in/tanercetinkaya" target="_blank" rel="noopener noreferrer">LinkedIn: tanercetinkaya</a>
+      <div class="creator-card">
+        <strong>Created by Taner Cetinkaya</strong>
+        <a href="https://www.linkedin.com/in/tanercetinkaya" target="_blank" rel="noopener noreferrer">www.linkedin.com/in/tanercetinkaya</a>
+      </div>
     </aside>
 
     <main>
@@ -691,7 +715,7 @@
         </div>
       </section>
 
-      <p class="footer-credit">Designed by Taner Cetinkaya.</p>
+      <p class="footer-credit">Created by Taner Cetinkaya.</p>
     </main>
   </div>
 
