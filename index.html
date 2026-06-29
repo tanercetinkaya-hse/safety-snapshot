@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -1480,7 +1480,7 @@
       var closed = a.status === "Closed" ? " closed" : "";
       if (!Array.isArray(a.photos)) a.photos = [];
       var linked = a.questionText ? '<div>Checklist question: <strong>' + escapeHtml(a.questionText) + '</strong></div>' : "";
-      var photoButton = a.photos.length < MAX_PHOTOS_PER_ITEM ? '<button class="btn small-btn secondary" type="button" onclick="openPhotoChooser(\'action\', \'" + a.id + "\')">&#128247; Add photo</button>' : '<span class="badge neutral">Photo limit reached</span>';
+      var photoButton = a.photos.length < MAX_PHOTOS_PER_ITEM ? '<button class="btn small-btn secondary" type="button" onclick="openPhotoChooser(\'action\', \'' + a.id + '\')">&#128247; Add photo</button>' : '<span class="badge neutral">Photo limit reached</span>';
       var photos = '<div class="action-photos"><div class="photo-head"><div><strong>Photo evidence</strong><br><span>' + a.photos.length + '/' + MAX_PHOTOS_PER_ITEM + ' photos attached to this action.</span></div></div><div class="photo-grid">' + renderPhotoGrid(a.photos, "action", a.id) + '</div></div>';
       return '<div class="action' + closed + '"><header><strong>' + escapeHtml(a.finding || "Not entered") + '</strong><span class="badge ' + riskClass(a.risk) + '">' + escapeHtml(a.risk || "Medium") + '</span></header><div class="action-meta">' + linked + '<div>Status: <strong>' + escapeHtml(a.status || "Open") + '</strong></div><div>Owner: <strong>' + escapeHtml(a.owner || "Unassigned") + '</strong></div><div>Due: <strong>' + escapeHtml(a.due || "No date") + '</strong></div></div><div class="action-buttons"><button class="btn small-btn secondary" type="button" onclick="openEditModal(\'' + a.id + '\')">Edit</button>' + photoButton + '<button class="btn small-btn danger" type="button" onclick="deleteAction(\'' + a.id + '\')">Delete</button></div>' + photos + '</div>';
     }
