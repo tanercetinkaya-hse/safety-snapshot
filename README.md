@@ -82,4 +82,4 @@ LinkedIn: https://www.linkedin.com/in/tanercetinkaya
 
 This project is intended to be shared as an open-use safety tool.
 
-Recommended license: MIT License
+MIT License
