@@ -58,6 +58,56 @@
       }
     }
 
+    :root.theme-light {
+      color-scheme: light;
+      --bg: #f6f7f8;
+      --panel: #ffffff;
+      --panel-soft: #f9fafb;
+      --ink: #172026;
+      --muted: #66717a;
+      --line: #dfe4e8;
+      --strong-line: #c9d1d8;
+      --accent: #26384a;
+      --accent-2: #4d6378;
+      --button: #172026;
+      --button-ink: #ffffff;
+      --button-soft: #eef2f5;
+      --green: #3f7b61;
+      --green-soft: #e9f4ef;
+      --amber: #9a6b22;
+      --amber-soft: #fff3dc;
+      --red: #a84a4a;
+      --red-soft: #faeaea;
+      --blue: #486f9c;
+      --blue-soft: #e9f1fb;
+      --shadow: 0 16px 40px rgba(23, 32, 38, .07);
+    }
+
+    :root.theme-dark {
+      color-scheme: dark;
+      --bg: #11161a;
+      --panel: #1a2026;
+      --panel-soft: #151b20;
+      --ink: #edf1f4;
+      --muted: #a4b0ba;
+      --line: #313b45;
+      --strong-line: #45515d;
+      --accent: #dfe7ef;
+      --accent-2: #a9b7c4;
+      --button: #e6edf3;
+      --button-ink: #11161a;
+      --button-soft: #26313a;
+      --green: #8ec7ae;
+      --green-soft: #173126;
+      --amber: #d9b26c;
+      --amber-soft: #3b2b14;
+      --red: #db8d8d;
+      --red-soft: #3a1f1f;
+      --blue: #9dbce0;
+      --blue-soft: #17273a;
+      --shadow: none;
+    }
+
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; background: var(--bg); color: var(--ink); }
@@ -72,7 +122,7 @@
       top: 0;
       z-index: 30;
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto auto auto;
       gap: 10px;
       align-items: center;
       padding: 10px 12px;
@@ -83,6 +133,8 @@
     @media (prefers-color-scheme: dark) {
       .mobile-header { background: rgba(17, 22, 26, .92); }
     }
+    :root.theme-light .mobile-header { background: rgba(246, 247, 248, .92); }
+    :root.theme-dark .mobile-header { background: rgba(17, 22, 26, .92); }
     .mobile-title { min-width: 0; }
     .mobile-title strong { display: block; font-size: 15px; letter-spacing: -.01em; }
     .mobile-title span { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -129,6 +181,7 @@
     .sidebar-score.compliance-mostly { border-color: var(--blue); background: var(--blue-soft); }
     .sidebar-score.compliance-strong { border-color: var(--green); background: var(--green-soft); }
     .sidebar-actions { display: grid; gap: 10px; }
+    .theme-toggle { width: 100%; }
     .credit { margin-top: auto; color: var(--muted); font-size: 12px; line-height: 1.45; }
     .linkedin-link {
       color: var(--accent-2);
@@ -494,6 +547,7 @@
         <span>Quick safety checks for everyday workplaces</span>
       </div>
       <div class="mobile-score" id="mobileScore">0%</div>
+      <button class="btn small-btn secondary" id="mobileThemeToggle" type="button" onclick="cycleThemeMode()">Mode</button>
       <button class="btn small-btn" type="button" onclick="newInspection()">&#43; New</button>
     </header>
 
@@ -507,6 +561,7 @@
         <strong id="sideScore">0%</strong>
         <span id="sideScoreBracket">Compliance score</span>
       </div>
+      <button class="btn secondary theme-toggle" id="themeToggle" type="button" onclick="cycleThemeMode()">Mode: Auto</button>
       <button class="btn" type="button" onclick="newInspection()">&#43; New Inspection</button>
       <div class="sidebar-actions">
         <button class="btn secondary" type="button" onclick="exportDocxReport()">&#9635; Export DOCX</button>
@@ -664,6 +719,7 @@
 
   <script>
     var STORAGE_KEY = "safety-snapshot-v1";
+    var THEME_KEY = "safety-snapshot-theme-mode";
     var CHECKLISTS = [
       { id: "housekeeping", title: "Housekeeping", description: "Checks cleanliness, storage, waste control, and general order.", questions: [
         { id: "housekeeping_1", text: "Are work areas clean and free from loose waste?", risk: "Medium", action: "Clean the affected work area and remove loose waste." },
@@ -782,6 +838,31 @@
     var suggestionExpanded = {};
 
     function el(id) { return document.getElementById(id); }
+    function preferredThemeByTime() {
+      var hour = new Date().getHours();
+      return hour >= 6 && hour < 18 ? "light" : "dark";
+    }
+    function themeMode() {
+      try { return localStorage.getItem(THEME_KEY) || "auto"; } catch (e) { return "auto"; }
+    }
+    function resolvedTheme(mode) {
+      return mode === "auto" ? preferredThemeByTime() : mode;
+    }
+    function applyThemeMode() {
+      var mode = themeMode();
+      var resolved = resolvedTheme(mode);
+      document.documentElement.classList.remove("theme-light", "theme-dark");
+      document.documentElement.classList.add("theme-" + resolved);
+      var label = mode === "auto" ? "Mode: Auto (" + (resolved === "light" ? "Light" : "Dark") + ")" : "Mode: " + (mode === "light" ? "Light" : "Dark");
+      if (el("themeToggle")) el("themeToggle").textContent = label;
+      if (el("mobileThemeToggle")) el("mobileThemeToggle").textContent = mode === "auto" ? "Auto" : (mode === "light" ? "Light" : "Dark");
+    }
+    function cycleThemeMode() {
+      var currentMode = themeMode();
+      var nextMode = currentMode === "auto" ? "light" : currentMode === "light" ? "dark" : "auto";
+      try { localStorage.setItem(THEME_KEY, nextMode); } catch (e) {}
+      applyThemeMode();
+    }
     function todayIso() { return new Date().toISOString().slice(0, 10); }
     function uid(prefix) { return prefix + "_" + Date.now() + "_" + Math.random().toString(16).slice(2); }
     function escapeHtml(value) {
@@ -1624,6 +1705,7 @@
       showToast("DOCX report exported");
     }
 
+    applyThemeMode();
     loadStore();
     bindFieldEvents();
     render();
