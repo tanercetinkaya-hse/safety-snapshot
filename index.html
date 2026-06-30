@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Safety Snapshot</title>
+  <title>Safety Snapshot by Taner Cetinkaya</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -136,7 +136,7 @@
     :root.theme-light .mobile-header { background: rgba(246, 247, 248, .92); }
     :root.theme-dark .mobile-header { background: rgba(17, 22, 26, .92); }
     .mobile-title { min-width: 0; }
-    .mobile-title strong { display: block; font-size: 15px; letter-spacing: -.01em; }
+    .mobile-title strong { display: block; font-size: 15px; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mobile-title span { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mobile-score { font-weight: 800; font-size: 18px; }
     .mobile-score.compliance-urgent, .compliance-urgent strong, .compliance-urgent .compliance-value { color: var(--red); }
@@ -635,7 +635,7 @@
   <div class="app">
     <header class="mobile-header">
       <div class="mobile-title">
-        <strong>Safety Snapshot</strong>
+        <strong>Safety Snapshot by Taner Cetinkaya</strong>
         <span>Quick safety checks for everyday workplaces</span>
       </div>
       <div class="mobile-score" id="mobileScore">0%</div>
@@ -646,7 +646,7 @@
     <aside>
       <div class="brand">
         <div class="brand-mark"><span class="quote-icon">&#8220;</span><span class="quote-text">Sharing is caring</span></div>
-        <h1>Safety Snapshot</h1>
+        <h1>Safety Snapshot by Taner Cetinkaya</h1>
         <p>Quick safety checks for everyday workplaces</p>
       </div>
       <div class="sidebar-score">
@@ -2287,7 +2287,7 @@
         if (manualItems.length) appendixPhotoGroup("Manual Actions", manualItems);
       }
       p("Safety Snapshot Report", { bold: true, size: "40", color: "172026", after: "80" });
-      p("Generated " + formatDateDisplay(todayIso()) + " | Safety Snapshot", { color: "66717A", size: "20", after: "180" });
+      p("Generated " + formatDateDisplay(todayIso()) + " | Safety Snapshot by Taner Cetinkaya", { color: "66717A", size: "20", after: "180" });
       table([
         ["Business Unit / Company", i.business || "Not entered", "Site / Area", i.site || "Not entered"],
         ["Location Type", i.locationType || "Not entered", "Inspection date", i.date || "Not entered"],
