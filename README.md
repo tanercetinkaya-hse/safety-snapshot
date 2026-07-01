@@ -73,6 +73,12 @@ If browser storage is cleared, saved inspections may be lost.
 
 This tool is for general support in workplace safety inspections. It does not replace legal compliance assessment, competent professional judgment, or employer-specific procedures.
 
+## Sample Output
+
+A sample inspection report generated from Safety Snapshot is available here:
+
+[View sample inspection report PDF](https://tanercetinkaya-hse.github.io/safety-snapshot/sample-inspection-report.pdf)
+
 ## Author
 
 Designed by **Taner Cetinkaya**
